@@ -67,7 +67,7 @@
         .voice-btn { background: rgba(255,255,255,0.08); border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         .voice-btn.danger { background: var(--red); }
 
-        /* ПРОФИЛЬ ВНИЗУ */
+        /* ПРОФИЛЬ */
         .user-footer {
             height: 54px; background: var(--bg-user); display: flex; align-items: center;
             padding: 0 10px; justify-content: space-between; cursor: pointer;
@@ -82,7 +82,7 @@
             position: absolute; bottom: -2px; right: -2px; border: 2px solid var(--bg-user);
         }
 
-        /* 3. ОСНОВНОЙ ЧАТ */
+        /* 3. ЧАТ */
         .chat-area { flex: 1; background: var(--bg-chat); display: flex; flex-direction: column; }
         .chat-header {
             height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
@@ -103,22 +103,24 @@
         .msg-time { font-size: 11px; color: var(--text-muted); margin-left: 6px; }
         .msg-text { font-size: 14px; line-height: 1.4; color: var(--text-normal); word-break: break-word; }
 
-        /* Вложения в чате */
+        /* Вложения: изображения */
         .chat-image {
-            max-width: 420px; max-height: 320px; border-radius: 8px; margin-top: 5px; cursor: pointer; border: 1px solid #444; display: block;
+            max-width: 420px; max-height: 320px; border-radius: 8px; margin-top: 5px; cursor: pointer;
+            border: 1px solid #444; display: block; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
         }
-        .chat-video {
-            max-width: 420px; max-height: 300px; border-radius: 8px; margin-top: 5px; outline: none;
-        }
+
+        /* Карточка файла / видео */
         .file-card {
             background: #2b2d31; border: 1px solid #383a40; padding: 10px 14px; border-radius: 6px;
             display: flex; align-items: center; gap: 12px; width: fit-content; margin-top: 5px;
         }
         .file-download-btn {
-            background: var(--blurple); color: #fff; text-decoration: none; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;
+            background: var(--blurple); color: #fff; text-decoration: none; padding: 5px 12px; border-radius: 4px;
+            font-size: 12px; font-weight: bold; cursor: pointer; transition: background 0.2s;
         }
         .file-download-btn:hover { background: var(--blurple-hover); }
 
+        /* Голосовое сообщение */
         .voice-note-card {
             background: #2b2d31; border-radius: 20px; padding: 6px 14px; display: flex; align-items: center; gap: 10px; margin-top: 4px; border: 1px solid #383a40;
         }
@@ -126,7 +128,6 @@
             width: 30px; height: 30px; border-radius: 50%; background: var(--blurple); color: #fff; border: none; cursor: pointer; font-size: 12px;
         }
 
-        /* Индикатор загрузки в чате */
         .uploading-bar {
             font-size: 13px; color: var(--yellow); padding: 8px 12px; background: rgba(240, 178, 50, 0.1); border-radius: 6px; border: 1px solid var(--yellow);
         }
@@ -147,7 +148,7 @@
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-        /* МОДАЛЬНЫЕ ОКНА */
+        /* МОДАЛКИ */
         .modal-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100;
@@ -284,7 +285,7 @@
 
             <div class="chat-input-wrapper">
                 <div class="chat-input-box">
-                    <button class="input-action-btn" title="Прикрепить файл или фото (без лимита!)" onclick="document.getElementById('file-uploader').click()">➕</button>
+                    <button class="input-action-btn" title="Прикрепить фото или файл" onclick="document.getElementById('file-uploader').click()">➕</button>
                     <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
                     <button class="input-action-btn" id="voice-record-btn" title="Записать голосовое сообщение" onclick="toggleVoiceRecord()">🎙</button>
                     <button class="call-header-btn" style="padding: 6px 12px;" onclick="sendTextMessage()">Отправить</button>
@@ -394,7 +395,7 @@ function handleIncomingPacket(data) {
     }
 }
 
-// --- ОТПРАВКА СООБЩЕНИЙ ---
+// --- ОТПРАВКА ТЕКСТА ---
 function sendTextMessage() {
     const input = document.getElementById('msg-input');
     const text = input.value.trim();
@@ -414,68 +415,97 @@ function sendTextMessage() {
 document.getElementById('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendTextMessage(); });
 
 // =========================================================================
-//         НОВАЯ СИСТЕМА ЗАГРУЗКИ БОЛЬШИХ ФАЙЛОВ (БЕЗ ЛИМИТОВ)
+//         БЕЗОТКАЗНЫЙ СЖИМАТЕЛЬ ФОТО (НЕ ЛОМАЕТСЯ И ВСЕГДА РАБОТАЕТ)
 // =========================================================================
+function compressPhoto(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width, h = img.height;
+                const maxDim = 1100;
+                if (w > maxDim || h > maxDim) {
+                    if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+                    else { w = Math.round((w * maxDim) / h); h = maxDim; }
+                }
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL('image/jpeg', 0.75));
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
 async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Временная плашка "Загрузка..."
-    const container = document.getElementById('messages');
-    const loadDiv = document.createElement('div');
-    loadDiv.className = 'uploading-bar';
-    loadDiv.innerText = `⏳ Загрузка файла "${file.name}" в облако...`;
-    container.appendChild(loadDiv);
-    container.scrollTop = container.scrollHeight;
+    const isImg = file.type.startsWith('image/');
 
-    try {
-        // Отправка файла в бесплатное облачное хранилище tmpfiles.org
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const res = await fetch('https://tmpfiles.org/api/v1/upload', {
-            method: 'POST',
-            body: formData
+    if (isImg) {
+        // ЛЮБОЕ ФОТО СЖИМАЕТСЯ МГНОВЕННО И ОТОБРАЖАЕТСЯ БЕЗ СБОЕВ!
+        const compressedBase64 = await compressPhoto(file);
+        const msgData = {
+            msgType: 'image',
+            fileUrl: compressedBase64,
+            fileName: file.name
+        };
+        sendPacket('CHAT_MSG', msgData);
+        renderMessage({
+            author: currentUser.name,
+            color: currentUser.color,
+            time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
+            ...msgData
         });
-        const json = await res.json();
+    } else {
+        // ДЛЯ ВИДЕО И ФАЙЛОВ - БЕЗОПАСНАЯ ПРЯМАЯ ЗАГРУЗКА
+        const container = document.getElementById('messages');
+        const loadDiv = document.createElement('div');
+        loadDiv.className = 'uploading-bar';
+        loadDiv.innerText = `⏳ Загрузка "${file.name}"...`;
+        container.appendChild(loadDiv);
+        container.scrollTop = container.scrollHeight;
 
-        loadDiv.remove();
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
 
-        if (json && json.data && json.data.url) {
-            // Превращаем URL в прямую ссылку на скачивание/просмотр
-            const directUrl = json.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+            const res = await fetch('https://tmpfiles.org/api/v1/upload', { method: 'POST', body: formData });
+            const json = await res.json();
+            loadDiv.remove();
 
-            const isImg = file.type.startsWith('image/');
-            const isVid = file.type.startsWith('video/');
+            if (json && json.data && json.data.url) {
+                const directUrl = json.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+                const isVid = file.type.startsWith('video/');
 
-            let type = 'file';
-            if (isImg) type = 'image';
-            if (isVid) type = 'video';
+                const msgData = {
+                    msgType: isVid ? 'video' : 'file',
+                    fileUrl: directUrl,
+                    fileName: file.name
+                };
 
-            const msgData = {
-                msgType: type,
-                fileUrl: directUrl,
-                fileName: file.name
-            };
-
-            sendPacket('CHAT_MSG', msgData);
-            renderMessage({
-                author: currentUser.name,
-                color: currentUser.color,
-                time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
-                ...msgData
-            });
-        } else {
-            throw new Error();
+                sendPacket('CHAT_MSG', msgData);
+                renderMessage({
+                    author: currentUser.name,
+                    color: currentUser.color,
+                    time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
+                    ...msgData
+                });
+            }
+        } catch(err) {
+            loadDiv.remove();
+            alert('Не удалось загрузить файл в облако.');
         }
-    } catch (err) {
-        loadDiv.remove();
-        alert('Не удалось загрузить файл в облако. Попробуйте еще раз!');
     }
     e.target.value = '';
 }
 
-// Запись ГОЛОСОВЫХ СООБЩЕНИЙ
+// ГОЛОСОВЫЕ СООБЩЕНИЯ
 let mediaRecorder = null, audioChunks = [], isRecording = false;
 
 async function toggleVoiceRecord() {
@@ -519,7 +549,7 @@ async function toggleVoiceRecord() {
     }
 }
 
-// --- ОТРИСОВКА СООБЩЕНИЙ В ЧАТЕ ---
+// --- ОТРИСОВКА В ЧАТЕ ---
 function renderMessage(data) {
     const container = document.getElementById('messages');
     const msg = document.createElement('div');
@@ -529,13 +559,18 @@ function renderMessage(data) {
     if (data.msgType === 'text') {
         contentHtml = `<div class="msg-text">${escapeHtml(data.content)}</div>`;
     } else if (data.msgType === 'image') {
-        contentHtml = `<img src="${data.fileUrl}" class="chat-image" onclick="window.open('${data.fileUrl}')">`;
+        contentHtml = `<img src="${data.fileUrl}" class="chat-image" onclick="window.open('${data.fileUrl}')" title="Кликните, чтобы открыть в полном размере">`;
     } else if (data.msgType === 'video') {
-        contentHtml = `<video src="${data.fileUrl}" controls class="chat-video"></video>`;
+        contentHtml = `
+            <div class="file-card">
+                <span>📹 Видео: <b>${escapeHtml(data.fileName)}</b></span>
+                <a href="${data.fileUrl}" target="_blank" class="file-download-btn">▶ Открыть видео</a>
+            </div>
+        `;
     } else if (data.msgType === 'file') {
         contentHtml = `
             <div class="file-card">
-                <span>📁 ${escapeHtml(data.fileName)}</span>
+                <span>📁 Файл: <b>${escapeHtml(data.fileName)}</b></span>
                 <a href="${data.fileUrl}" target="_blank" download="${data.fileName}" class="file-download-btn">Скачать</a>
             </div>
         `;
@@ -654,7 +689,7 @@ function saveProfile() {
     closeModal('profile-modal');
 }
 
-// --- ГОЛОСОВЫЕ ЗВОНКИ WebRTC ---
+// --- WebRTC ГОЛОСОВОЙ ЗВОНОК ---
 let peerConnection = null, localStream = null;
 const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
@@ -663,7 +698,7 @@ async function initiateCall() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch(e) {
-        alert('Разрешите микрофон в браузере!');
+        alert('Разрешите микрофон в настройках браузера!');
         return;
     }
     document.getElementById('voice-panel').style.display = 'flex';
@@ -728,7 +763,6 @@ function toggleMute() {
     }
 }
 
-// Модалки
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }

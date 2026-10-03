@@ -153,14 +153,16 @@
         /* МОДАЛКИ */
         .modal-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100;
+            background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 100;
         }
         .modal-box {
             background: var(--bg-channels); padding: 24px; border-radius: 8px; width: 360px; text-align: center; color: #fff;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.7);
         }
         .modal-box input {
-            width: 100%; padding: 10px; margin: 8px 0; background: var(--bg-input); border: 1px solid #444; color: #fff; border-radius: 4px; outline: none;
+            width: 100%; padding: 11px; margin: 8px 0; background: var(--bg-input); border: 1px solid #444; color: #fff; border-radius: 4px; outline: none; font-size: 14px;
         }
+        .modal-box input:focus { border-color: var(--blurple); }
         .modal-tabs { display: flex; border-bottom: 1px solid #444; margin-bottom: 12px; }
         .modal-tab { flex: 1; padding: 8px; cursor: pointer; color: var(--text-muted); font-weight: bold; }
         .modal-tab.active { color: var(--text-header); border-bottom: 2px solid var(--blurple); }
@@ -180,17 +182,17 @@
     <!-- 1. МОДАЛКА АВТОРИЗАЦИИ (ВХОД И РЕГИСТРАЦИЯ) -->
     <div id="auth-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box">
-            <h2 style="margin-bottom: 10px;">Добро пожаловать!</h2>
+            <h2 style="margin-bottom: 10px;">Discord Web</h2>
             <div class="modal-tabs">
-                <div class="modal-tab active" id="tab-login" onclick="switchAuthTab('login')">Вход</div>
-                <div class="modal-tab" id="tab-register" onclick="switchAuthTab('register')">Регистрация</div>
+                <div class="modal-tab" id="tab-login" onclick="switchAuthTab('login')">Вход</div>
+                <div class="modal-tab active" id="tab-register" onclick="switchAuthTab('register')">Регистрация</div>
             </div>
 
-            <input type="text" id="auth-username" placeholder="Имя пользователя">
-            <input type="password" id="auth-password" placeholder="Пароль">
+            <input type="text" id="auth-username" placeholder="Имя пользователя (Логин)">
+            <input type="password" id="auth-password" placeholder="Придумайте пароль">
 
-            <button class="call-header-btn" id="btn-auth-submit" style="width: 100%; justify-content: center; margin-top: 10px;" onclick="handleAuthSubmit()">ВОЙТИ</button>
-            <p id="auth-error" style="color: var(--red); font-size: 12px; margin-top: 8px; display: none;"></p>
+            <button class="call-header-btn" id="btn-auth-submit" style="width: 100%; justify-content: center; margin-top: 10px; padding: 10px;" onclick="handleAuthSubmit()">ЗАРЕГИСТРИРОВАТЬСЯ</button>
+            <p id="auth-error" style="color: var(--red); font-size: 13px; margin-top: 10px; display: none;"></p>
         </div>
     </div>
 
@@ -353,31 +355,45 @@ function playDiscordPing() {
 }
 
 // =========================================================================
+//         БЕЗОПАСНОЕ ШИФРОВАНИЕ ДЛЯ ЛЮБЫХ ЯЗЫКОВ И СИМВОЛОВ (UTF-8)
+// =========================================================================
+function safeEncode(str) {
+    return encodeURIComponent(str);
+}
+function safeDecode(str) {
+    try {
+        return decodeURIComponent(str);
+    } catch(e) {
+        return str;
+    }
+}
+
+// =========================================================================
 //                  СИСТЕМА АККАУНТОВ И АВТОРИЗАЦИИ
 // =========================================================================
-let authMode = 'login'; // 'login' или 'register'
+let authMode = 'register'; // По умолчанию открываем регистрацию
 let currentUser = null;
 let userServers = [];
 let currentServerIndex = 0;
 let currentChannelName = 'общий';
 let mqttClient = null;
 
-// База данных аккаунтов в браузере
 function getAccountsDB() {
-    return JSON.parse(localStorage.getItem('dc_accounts_db') || '{}');
+    return JSON.parse(localStorage.getItem('dc_accounts_db_v2') || '{}');
 }
 function saveAccountsDB(db) {
-    localStorage.setItem('dc_accounts_db', JSON.stringify(db));
+    localStorage.setItem('dc_accounts_db_v2', JSON.stringify(db));
 }
 
-// Проверка сохраненной сессии (САЙТ ЗАПОМИНАЕТ ТЕБЯ!)
+// Проверка сохраненной сессии
 function checkExistingSession() {
-    const savedSession = localStorage.getItem('dc_active_user');
+    const savedSession = localStorage.getItem('dc_active_user_v2');
     if (savedSession) {
         currentUser = JSON.parse(savedSession);
         initUserEnvironment();
     } else {
         openModal('auth-modal');
+        switchAuthTab('register');
     }
 }
 
@@ -386,6 +402,7 @@ function switchAuthTab(mode) {
     document.getElementById('tab-login').classList.toggle('active', mode === 'login');
     document.getElementById('tab-register').classList.toggle('active', mode === 'register');
     document.getElementById('btn-auth-submit').innerText = mode === 'login' ? 'ВОЙТИ' : 'ЗАРЕГИСТРИРОВАТЬСЯ';
+    document.getElementById('auth-password').placeholder = mode === 'login' ? 'Ваш пароль' : 'Придумайте пароль';
     document.getElementById('auth-error').style.display = 'none';
 }
 
@@ -395,25 +412,26 @@ function handleAuthSubmit() {
     const errBox = document.getElementById('auth-error');
 
     if (!username || !password) {
-        errBox.innerText = 'Заполните все поля!';
+        errBox.innerText = 'Заполните логин и пароль!';
         errBox.style.display = 'block';
         return;
     }
 
     const db = getAccountsDB();
+    const userKey = username.toLowerCase();
 
     if (authMode === 'register') {
-        if (db[username.toLowerCase()]) {
-            errBox.innerText = 'Пользователь с таким логином уже есть!';
+        if (db[userKey]) {
+            errBox.innerText = 'Пользователь с таким логином уже существует! Нажмите "Вход".';
             errBox.style.display = 'block';
             return;
         }
 
-        // Создаем новый профиль
+        // Успешная регистрация
         const newUser = {
             id: 'u_' + Math.random().toString(36).substring(7),
             name: username,
-            password: btoa(password),
+            password: safeEncode(password),
             color: '#' + Math.floor(Math.random()*16777215).toString(16),
             servers: [
                 createDefaultServerObject('Главный сервер', '💬'),
@@ -421,32 +439,40 @@ function handleAuthSubmit() {
             ]
         };
 
-        db[username.toLowerCase()] = newUser;
+        db[userKey] = newUser;
         saveAccountsDB(db);
 
         currentUser = newUser;
-        localStorage.setItem('dc_active_user', JSON.stringify(currentUser));
+        localStorage.setItem('dc_active_user_v2', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initUserEnvironment();
 
     } else {
         // Вход
-        const account = db[username.toLowerCase()];
-        if (!account || account.password !== btoa(password)) {
+        const account = db[userKey];
+        if (!account || account.password !== safeEncode(password)) {
             errBox.innerText = 'Неверный логин или пароль!';
             errBox.style.display = 'block';
             return;
         }
 
         currentUser = account;
-        localStorage.setItem('dc_active_user', JSON.stringify(currentUser));
+        localStorage.setItem('dc_active_user_v2', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initUserEnvironment();
     }
 }
 
+// Отправка по Enter
+document.getElementById('auth-password').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleAuthSubmit();
+});
+document.getElementById('auth-username').addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleAuthSubmit();
+});
+
 function logout() {
-    localStorage.removeItem('dc_active_user');
+    localStorage.removeItem('dc_active_user_v2');
     window.location.reload();
 }
 
@@ -461,21 +487,19 @@ function initUserEnvironment() {
     renderServerBar();
     renderChannels();
     connectMQTT();
-
-    // Проверяем приглашение в ссылке браузера
     checkUrlInvite();
 }
 
 function saveUserAccountData() {
     currentUser.servers = userServers;
-    localStorage.setItem('dc_active_user', JSON.stringify(currentUser));
+    localStorage.setItem('dc_active_user_v2', JSON.stringify(currentUser));
     const db = getAccountsDB();
     db[currentUser.name.toLowerCase()] = currentUser;
     saveAccountsDB(db);
 }
 
 // =========================================================================
-//            СИСТЕМА СЕРВЕРОВ И ПРИГЛАШЕНИЙ (ИНВАЙТЫ)
+//            СИСТЕМА СЕРВЕРОВ И ПРИГЛАШЕНИЙ (БЕЗ ОШИБОК UTF-8)
 // =========================================================================
 function createDefaultServerObject(name, icon) {
     const sId = 'srv_' + Math.random().toString(36).substring(7);
@@ -483,8 +507,7 @@ function createDefaultServerObject(name, icon) {
         id: sId,
         name: name,
         icon: icon || name[0].toUpperCase(),
-        channels: ['общий', 'мемы', 'файлы'],
-        inviteCode: btoa(JSON.stringify({ id: sId, name, icon }))
+        channels: ['общий', 'мемы', 'файлы']
     };
 }
 
@@ -532,7 +555,6 @@ function renderChannels() {
     document.getElementById('current-channel-header').innerText = currentChannelName;
 }
 
-// Меню сервера
 function toggleServerDropdown() {
     const menu = document.getElementById('server-dropdown');
     menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
@@ -543,11 +565,11 @@ window.addEventListener('click', e => {
     }
 });
 
-// Генерация ссылки приглашения
+// Безопасная генерация ссылки приглашения (UTF-8)
 function openInviteModal() {
     document.getElementById('server-dropdown').style.display = 'none';
     const s = userServers[currentServerIndex];
-    const inviteCode = btoa(JSON.stringify({ id: s.id, name: s.name, icon: s.icon }));
+    const inviteCode = safeEncode(JSON.stringify({ id: s.id, name: s.name, icon: s.icon }));
     const inviteUrl = `${window.location.origin}${window.location.pathname}#invite=${inviteCode}`;
 
     document.getElementById('invite-link-display').value = inviteUrl;
@@ -563,7 +585,6 @@ function copyInviteLink() {
     setTimeout(() => btn.innerText = '📋 Скопировать ссылку', 2000);
 }
 
-// Добавление сервера / Вход по приглашению
 function switchServerModalTab(tab) {
     document.getElementById('tab-srv-create').classList.toggle('active', tab === 'create');
     document.getElementById('tab-srv-join').classList.toggle('active', tab === 'join');
@@ -597,9 +618,8 @@ function joinServerByCode(rawCode) {
         if (code.includes('#invite=')) {
             code = code.split('#invite=')[1];
         }
-        const srvData = JSON.parse(atob(code));
+        const srvData = JSON.parse(safeDecode(code));
         if (srvData && srvData.name) {
-            // Проверка, есть ли уже такой сервер
             if (userServers.some(s => s.id === srvData.id)) {
                 alert('Вы уже состоите на этом сервере!');
                 return;
@@ -620,7 +640,6 @@ function joinServerByCode(rawCode) {
     }
 }
 
-// Авто-вход по ссылке
 function checkUrlInvite() {
     if (window.location.hash.startsWith('#invite=')) {
         const code = window.location.hash.replace('#invite=', '');
@@ -860,7 +879,6 @@ function playVoiceNote(btn, audioSrc) {
     audio.onended = () => btn.innerText = '▶';
 }
 
-// Профиль
 function updateProfileUI() {
     document.getElementById('my-name').innerText = currentUser.name;
     document.getElementById('my-avatar').innerText = currentUser.name[0].toUpperCase();
@@ -948,7 +966,6 @@ function toggleMute() {
     }
 }
 
-// Модалки
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }

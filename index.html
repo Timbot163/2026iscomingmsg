@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Web Ultimate</title>
+    <style>
+        :root {
+            --bg-server: #1e1f22;
+            --bg-channels: #2b2d31;
+            --bg-chat: #313338;
+            --bg-input: #383a40;
+            --bg-user: #232428;
+            --blurple: #5865f2;
+            --blurple-hover: #4752c4;
+            --text-normal: #dbdee1;
+            --text-muted: #949ba4;
+            --text-header: #f2f3f5;
+            --green: #23a55a;
+            --red: #f23f43;
+            --yellow: #f0b232;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+        body, html { width: 100%; height: 100%; background: var(--bg-server); color: var(--text-normal); overflow: hidden; }
+
+        .app-container { display: flex; width: 100vw; height: 100vh; }
+
+        /* 1. ПАНЕЛЬ СЕРВЕРОВ */
+        .servers-sidebar {
+            width: 72px; background: var(--bg-server); display: flex; flex-direction: column;
+            align-items: center; padding: 12px 0; gap: 8px; overflow-y: auto;
+        }
+        .server-icon {
+            width: 48px; height: 48px; background: var(--bg-chat); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-weight: bold;
+            font-size: 16px; cursor: pointer; transition: all 0.2s; color: #fff; position: relative;
+        }
+        .server-icon:hover, .server-icon.active { border-radius: 16px; background: var(--blurple); }
+        .server-icon.add-btn { color: var(--green); border: 1px dashed var(--green); background: transparent; }
+        .server-icon.add-btn:hover { background: var(--green); color: #fff; border-radius: 16px; }
+
+        /* 2. КАНАЛЫ */
+        .channels-sidebar {
+            width: 240px; background: var(--bg-channels); display: flex; flex-direction: column;
+        }
+        .server-header {
+            height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
+            font-weight: bold; color: var(--text-header); border-bottom: 1px solid #1f2023;
+        }
+        .channels-list { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+        .category-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase; padding: 6px;
+        }
+        .channel-item {
+            display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 4px;
+            color: var(--text-muted); cursor: pointer; font-size: 14px;
+        }
+        .channel-item:hover, .channel-item.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
+
+        /* ГОЛОСОВОЙ БЛОК */
+        #voice-panel {
+            background: #111214; border-bottom: 1px solid #232428; padding: 8px 12px; display: none; flex-direction: column; gap: 6px;
+        }
+        .voice-status { color: var(--green); font-weight: bold; font-size: 12px; display: flex; align-items: center; gap: 6px; }
+        .voice-btn { background: rgba(255,255,255,0.08); border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        .voice-btn.danger { background: var(--red); }
+
+        /* ПРОФИЛЬ ВНИЗУ */
+        .user-footer {
+            height: 54px; background: var(--bg-user); display: flex; align-items: center;
+            padding: 0 10px; justify-content: space-between; cursor: pointer;
+        }
+        .user-footer:hover { background: #282a2e; }
+        .avatar {
+            width: 32px; height: 32px; border-radius: 50%; background: var(--blurple);
+            display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; position: relative;
+        }
+        .status-dot {
+            width: 10px; height: 10px; border-radius: 50%; background: var(--green);
+            position: absolute; bottom: -2px; right: -2px; border: 2px solid var(--bg-user);
+        }
+
+        /* 3. ОСНОВНОЙ ЧАТ */
+        .chat-area { flex: 1; background: var(--bg-chat); display: flex; flex-direction: column; }
+        .chat-header {
+            height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid #202225; color: var(--text-header); font-weight: bold;
+        }
+        .call-header-btn {
+            background: var(--green); color: #fff; border: none; padding: 6px 14px;
+            border-radius: 4px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 6px;
+        }
+
+        .messages-container {
+            flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; user-select: text;
+        }
+        .message { display: flex; gap: 14px; position: relative; }
+        .message:hover { background: rgba(255,255,255,0.02); }
+        .msg-body { display: flex; flex-direction: column; gap: 4px; max-width: 80%; }
+        .msg-author { font-weight: 600; color: var(--text-header); font-size: 15px; }
+        .msg-time { font-size: 11px; color: var(--text-muted); margin-left: 6px; }
+        .msg-text { font-size: 14px; line-height: 1.4; color: var(--text-normal); word-break: break-word; }
+
+        /* Вложения в чате */
+        .chat-image {
+            max-width: 380px; max-height: 280px; border-radius: 8px; margin-top: 5px; cursor: pointer; border: 1px solid #444;
+        }
+        .file-card {
+            background: #2b2d31; border: 1px solid #383a40; padding: 10px 14px; border-radius: 6px;
+            display: flex; align-items: center; gap: 12px; width: fit-content; margin-top: 5px;
+        }
+        .file-download-btn {
+            background: var(--blurple); color: #fff; text-decoration: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;
+        }
+
+        /* Голосовое сообщение в чате */
+        .voice-note-card {
+            background: #2b2d31; border-radius: 20px; padding: 6px 14px; display: flex; align-items: center; gap: 10px; margin-top: 4px; border: 1px solid #383a40;
+        }
+        .vn-play-btn {
+            width: 30px; height: 30px; border-radius: 50%; background: var(--blurple); color: #fff; border: none; cursor: pointer; font-size: 12px;
+        }
+
+        /* ПАНЕЛЬ ВВОДА */
+        .chat-input-wrapper { padding: 0 16px 20px 16px; }
+        .chat-input-box {
+            background: var(--bg-input); border-radius: 8px; padding: 6px 14px; display: flex; align-items: center; gap: 10px;
+        }
+        .chat-input-box input {
+            flex: 1; background: transparent; border: none; outline: none; color: var(--text-normal); font-size: 15px; padding: 6px 0;
+        }
+        .input-action-btn {
+            background: transparent; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 4px;
+        }
+        .input-action-btn:hover { color: #fff; }
+        .input-action-btn.recording { color: var(--red); animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+
+        /* МОДАЛЬНЫЕ ОКНА */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: none; align-items: center; justify-content: center; z-index: 100;
+        }
+        .modal-box {
+            background: var(--bg-channels); padding: 24px; border-radius: 8px; width: 340px; text-align: center; color: #fff;
+        }
+        .modal-box input {
+            width: 100%; padding: 10px; margin: 10px 0; background: var(--bg-input); border: 1px solid #444; color: #fff; border-radius: 4px; outline: none;
+        }
+        .modal-actions { display: flex; gap: 8px; margin-top: 10px; }
+
+        /* Всплывающий звонок */
+        #incoming-call-modal {
+            display: none; position: absolute; top: 20px; right: 20px; background: var(--bg-channels);
+            border: 2px solid var(--blurple); padding: 16px; border-radius: 8px; z-index: 200; text-align: center;
+        }
+    </style>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+
+    <audio id="remote-audio" autoplay></audio>
+    <input type="file" id="file-uploader" style="display: none;" onchange="handleFileUpload(event)">
+
+    <!-- 1. МОДАЛКА ВХОДА -->
+    <div id="login-modal" class="modal-overlay" style="display: flex;">
+        <div class="modal-box">
+            <h2>Discord Web</h2>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Введите ваш ник и общий код комнаты:</p>
+            <input type="text" id="join-name" placeholder="Ваш никнейм">
+            <input type="text" id="join-room" placeholder="Код комнаты" value="сталкеры-2024">
+            <button class="call-header-btn" style="width: 100%; justify-content: center;" onclick="connectToDiscord()">ВОЙТИ</button>
+        </div>
+    </div>
+
+    <!-- 2. МОДАЛКА СОЗДАНИЯ СЕРВЕРА -->
+    <div id="create-server-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Создать сервер</h3>
+            <input type="text" id="new-server-name" placeholder="Название сервера">
+            <div class="modal-actions">
+                <button class="call-header-btn" style="flex:1; justify-content:center;" onclick="confirmCreateServer()">Создать</button>
+                <button class="voice-btn" style="flex:1;" onclick="closeModal('create-server-modal')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. МОДАЛКА СОЗДАНИЯ КАНАЛА -->
+    <div id="create-channel-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Новый канал</h3>
+            <input type="text" id="new-channel-name" placeholder="название-канала">
+            <div class="modal-actions">
+                <button class="call-header-btn" style="flex:1; justify-content:center;" onclick="confirmCreateChannel()">Создать</button>
+                <button class="voice-btn" style="flex:1;" onclick="closeModal('create-channel-modal')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. МОДАЛКА ПРОФИЛЯ -->
+    <div id="profile-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Настройки профиля</h3>
+            <input type="text" id="edit-profile-name" placeholder="Новый ник">
+            <label style="font-size: 12px; color: var(--text-muted); display: block; text-align: left;">Цвет аватарки:</label>
+            <input type="color" id="edit-profile-color" style="height: 40px; cursor: pointer; padding: 2px;">
+            <div class="modal-actions">
+                <button class="call-header-btn" style="flex:1; justify-content:center;" onclick="saveProfile()">Сохранить</button>
+                <button class="voice-btn" style="flex:1;" onclick="closeModal('profile-modal')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ВХОДЯЩИЙ ЗВОНОК -->
+    <div id="incoming-call-modal">
+        <div style="font-weight: bold; color: #fff;">Входящий звонок...</div>
+        <div id="caller-name" style="color: var(--blurple); margin: 6px 0;">Друг звонит</div>
+        <div style="display: flex; gap: 8px; justify-content: center;">
+            <button class="call-header-btn" onclick="answerCall()">✔ Ответить</button>
+            <button class="voice-btn danger" onclick="rejectCall()">✖ Сбросить</button>
+        </div>
+    </div>
+
+    <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
+    <div class="app-container">
+        <!-- 1. СЕРВЕРЫ -->
+        <div class="servers-sidebar" id="server-bar">
+            <!-- Динамические серверы -->
+            <div class="server-icon add-btn" title="Создать сервер" onclick="openModal('create-server-modal')">+</div>
+        </div>
+
+        <!-- 2. КАНАЛЫ -->
+        <div class="channels-sidebar">
+            <div class="server-header">
+                <span id="current-server-title">Сервер</span>
+                <span style="font-size: 10px; color: var(--green);">● Онлайн</span>
+            </div>
+
+            <div class="channels-list">
+                <div class="category-header">
+                    <span>Текстовые каналы</span>
+                    <span style="cursor: pointer; font-size: 14px;" onclick="openModal('create-channel-modal')">+</span>
+                </div>
+                <div id="channel-items-container">
+                    <!-- Каналы генерируются тут -->
+                </div>
+            </div>
+
+            <!-- ПАНЕЛЬ ГОЛОСА -->
+            <div id="voice-panel">
+                <div class="voice-status"><span>🟢</span> Голос подключен</div>
+                <div style="display:flex; justify-content:space-between; margin-top:4px;">
+                    <button class="voice-btn" id="btn-mic" onclick="toggleMute()">🎙 Микрофон</button>
+                    <button class="voice-btn danger" onclick="hangUp()">📞 Сброс</button>
+                </div>
+            </div>
+
+            <!-- ПРОФИЛЬ СНИЗУ -->
+            <div class="user-footer" onclick="openModal('profile-modal')">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <div class="avatar" id="my-avatar">Я<div class="status-dot"></div></div>
+                    <div>
+                        <div id="my-name" style="font-size: 13px; font-weight:bold; color:#fff;">Сталкер</div>
+                        <div style="font-size: 11px; color:var(--text-muted);">Нажми для смены ника</div>
+                    </div>
+                </div>
+                <span style="color: var(--text-muted); font-size: 14px;">⚙</span>
+            </div>
+        </div>
+
+        <!-- 3. ЧАТ -->
+        <div class="chat-area">
+            <div class="chat-header">
+                <div><span>#</span> <span id="current-channel-header">общий</span></div>
+                <button class="call-header-btn" onclick="initiateCall()">📞 Позвонить</button>
+            </div>
+
+            <div class="messages-container" id="messages">
+                <!-- Сообщения -->
+            </div>
+
+            <div class="chat-input-wrapper">
+                <div class="chat-input-box">
+                    <button class="input-action-btn" title="Отправить фото или файл" onclick="document.getElementById('file-uploader').click()">➕</button>
+                    <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
+                    <button class="input-action-btn" id="voice-record-btn" title="Записать голосовое сообщение" onclick="toggleVoiceRecord()">🎙</button>
+                    <button class="call-header-btn" style="padding: 6px 12px;" onclick="sendTextMessage()">Отправить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- АУДИО УВЕДОМЛЕНИЯ ---
+let audioCtx = null;
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playDiscordPing() {
+    initAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(987.77, audioCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+}
+
+// --- ДАННЫЕ ПРОФИЛЯ И СЕРВЕРОВ ---
+let currentUser = {
+    id: Math.random().toString(36).substring(7),
+    name: 'Сталкер_' + Math.floor(Math.random() * 900 + 100),
+    color: '#' + Math.floor(Math.random()*16777215).toString(16)
+};
+
+let roomCode = 'сталкеры-2024';
+let mqttClient = null;
+
+let servers = [
+    { id: 'srv-1', name: 'Главный сервер', icon: '💬', channels: ['общий', 'мемы', 'игры'] },
+    { id: 'srv-2', name: 'Чернобыль 3D', icon: '☢', channels: ['зона', 'посиделки'] }
+];
+let currentServerIndex = 0;
+let currentChannelName = 'общий';
+
+document.getElementById('join-name').value = currentUser.name;
+
+// --- ПОДКЛЮЧЕНИЕ К СЕТИ ---
+function connectToDiscord() {
+    initAudio();
+    const n = document.getElementById('join-name').value.trim();
+    const r = document.getElementById('join-room').value.trim();
+    if (n) currentUser.name = n;
+    if (r) roomCode = r;
+
+    closeModal('login-modal');
+    updateProfileUI();
+    renderServerBar();
+    renderChannels();
+
+    mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+    const topic = 'discord_ultimate_' + encodeURIComponent(roomCode);
+
+    mqttClient.on('connect', () => {
+        mqttClient.subscribe(topic);
+    });
+
+    mqttClient.on('message', async (t, payload) => {
+        try {
+            const data = JSON.parse(payload.toString());
+            if (data.senderId === currentUser.id) return;
+            handleIncomingPacket(data);
+        } catch(e) {}
+    });
+}
+
+function sendPacket(type, extra = {}) {
+    if (!mqttClient) return;
+    const topic = 'discord_ultimate_' + encodeURIComponent(roomCode);
+    mqttClient.publish(topic, JSON.stringify({
+        senderId: currentUser.id,
+        author: currentUser.name,
+        color: currentUser.color,
+        server: servers[currentServerIndex].id,
+        channel: currentChannelName,
+        type: type,
+        time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
+        ...extra
+    }));
+}
+
+// --- ОБРАБОТКА ВХОДЯЩИХ СООБЩЕНИЙ ---
+function handleIncomingPacket(data) {
+    if (data.type === 'CHAT_MSG') {
+        if (data.server === servers[currentServerIndex].id && data.channel === currentChannelName) {
+            renderMessage(data);
+            playDiscordPing();
+        }
+    } else if (data.type === 'CALL_OFFER') {
+        document.getElementById('caller-name').innerText = `${data.author} звонит вам`;
+        document.getElementById('incoming-call-modal').style.display = 'block';
+    } else if (data.type === 'CALL_ACCEPTED') {
+        startWebRTC(true);
+    } else if (data.type === 'CALL_ENDED' || data.type === 'CALL_REJECTED') {
+        cleanUpCall();
+    } else if (data.type === 'RTC_OFFER') {
+        handleRtcOffer(data.sdp);
+    } else if (data.type === 'RTC_ANSWER') {
+        if (peerConnection) peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+    } else if (data.type === 'RTC_CANDIDATE') {
+        if (peerConnection && data.candidate) peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    }
+}
+
+// --- ОТПРАВКА СООБЩЕНИЙ (ТЕКСТ, ФОТО, ФАЙЛЫ, ГОЛОСОВЫЕ) ---
+function sendTextMessage() {
+    const input = document.getElementById('msg-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const msgData = { content: text, msgType: 'text' };
+    sendPacket('CHAT_MSG', msgData);
+
+    renderMessage({
+        author: currentUser.name,
+        color: currentUser.color,
+        time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
+        ...msgData
+    });
+    input.value = '';
+}
+document.getElementById('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendTextMessage(); });
+
+// Отправка фото / файлов
+async function handleFileUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 800 * 1024) {
+        alert('Файл слишком большой! Для бесплатного брокера выбирайте файлы до 800 КБ.');
+        return;
+    }
+
+    const isImage = file.type.startsWith('image/');
+    const reader = new FileReader();
+
+    reader.onload = () => {
+        const fileData = reader.result;
+        const msgData = {
+            msgType: isImage ? 'image' : 'file',
+            fileData: fileData,
+            fileName: file.name
+        };
+
+        sendPacket('CHAT_MSG', msgData);
+        renderMessage({
+            author: currentUser.name,
+            color: currentUser.color,
+            time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
+            ...msgData
+        });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+}
+
+// Запись ГОЛОСОВОГО СООБЩЕНИЯ (ГС)
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+async function toggleVoiceRecord() {
+    initAudio();
+    const btn = document.getElementById('voice-record-btn');
+
+    if (!isRecording) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            mediaRecorder.onstop = () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const audioBase64 = reader.result;
+                    const msgData = { msgType: 'voice_note', fileData: audioBase64 };
+                    sendPacket('CHAT_MSG', msgData);
+                    renderMessage({
+                        author: currentUser.name,
+                        color: currentUser.color,
+                        time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
+                        ...msgData
+                    });
+                };
+                reader.readAsDataURL(audioBlob);
+                stream.getTracks().forEach(t => t.stop());
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            btn.classList.add('recording');
+            btn.title = "Идет запись... Нажми еще раз для отправки!";
+        } catch(e) {
+            alert('Нет доступа к микрофону для записи голосового!');
+        }
+    } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        btn.classList.remove('recording');
+        btn.title = "Записать голосовое сообщение";
+    }
+}
+
+// --- ОТРИСОВКА СООБЩЕНИЙ ---
+function renderMessage(data) {
+    const container = document.getElementById('messages');
+    const msg = document.createElement('div');
+    msg.className = 'message';
+
+    let contentHtml = '';
+    if (data.msgType === 'text') {
+        contentHtml = `<div class="msg-text">${escapeHtml(data.content)}</div>`;
+    } else if (data.msgType === 'image') {
+        contentHtml = `<img src="${data.fileData}" class="chat-image" onclick="window.open('${data.fileData}')">`;
+    } else if (data.msgType === 'file') {
+        contentHtml = `
+            <div class="file-card">
+                <span>📁 ${escapeHtml(data.fileName)}</span>
+                <a href="${data.fileData}" download="${data.fileName}" class="file-download-btn">Скачать</a>
+            </div>
+        `;
+    } else if (data.msgType === 'voice_note') {
+        contentHtml = `
+            <div class="voice-note-card">
+                <button class="vn-play-btn" onclick="playVoiceNote(this, '${data.fileData}')">▶</button>
+                <span style="font-size: 13px;">🎙 Голосовое сообщение</span>
+            </div>
+        `;
+    }
+
+    msg.innerHTML = `
+        <div class="avatar" style="background:${data.color}">${data.author[0].toUpperCase()}</div>
+        <div class="msg-body">
+            <div><span class="msg-author">${data.author}</span><span class="msg-time">${data.time}</span></div>
+            ${contentHtml}
+        </div>
+    `;
+    container.appendChild(msg);
+    container.scrollTop = container.scrollHeight;
+}
+
+function playVoiceNote(btn, audioSrc) {
+    const audio = new Audio(audioSrc);
+    btn.innerText = '⏸';
+    audio.play();
+    audio.onended = () => btn.innerText = '▶';
+}
+
+// --- СЕРВЕРЫ И КАНАЛЫ ---
+function renderServerBar() {
+    const bar = document.getElementById('server-bar');
+    bar.querySelectorAll('.server-item').forEach(e => e.remove());
+
+    servers.forEach((s, idx) => {
+        const icon = document.createElement('div');
+        icon.className = `server-icon server-item ${idx === currentServerIndex ? 'active' : ''}`;
+        icon.innerText = s.icon;
+        icon.title = s.name;
+        icon.onclick = () => switchServer(idx);
+        bar.insertBefore(icon, bar.lastElementChild);
+    });
+}
+
+function switchServer(idx) {
+    currentServerIndex = idx;
+    currentChannelName = servers[idx].channels[0] || 'общий';
+    document.getElementById('current-server-title').innerText = servers[idx].name;
+    renderServerBar();
+    renderChannels();
+    document.getElementById('messages').innerHTML = '';
+}
+
+function renderChannels() {
+    const container = document.getElementById('channel-items-container');
+    container.innerHTML = '';
+    const s = servers[currentServerIndex];
+
+    s.channels.forEach(ch => {
+        const item = document.createElement('div');
+        item.className = `channel-item ${ch === currentChannelName ? 'active' : ''}`;
+        item.innerHTML = `<span>#</span> <span>${ch}</span>`;
+        item.onclick = () => {
+            currentChannelName = ch;
+            document.getElementById('current-channel-header').innerText = ch;
+            renderChannels();
+            document.getElementById('messages').innerHTML = '';
+        };
+        container.appendChild(item);
+    });
+    document.getElementById('current-channel-header').innerText = currentChannelName;
+}
+
+function confirmCreateServer() {
+    const name = document.getElementById('new-server-name').value.trim();
+    if (name) {
+        servers.push({
+            id: 'srv-' + Date.now(),
+            name: name,
+            icon: name[0].toUpperCase(),
+            channels: ['общий', 'флуд']
+        });
+        switchServer(servers.length - 1);
+        closeModal('create-server-modal');
+        document.getElementById('new-server-name').value = '';
+    }
+}
+
+function confirmCreateChannel() {
+    const name = document.getElementById('new-channel-name').value.trim().toLowerCase().replace(/\s+/g, '-');
+    if (name) {
+        servers[currentServerIndex].channels.push(name);
+        currentChannelName = name;
+        renderChannels();
+        closeModal('create-channel-modal');
+        document.getElementById('new-channel-name').value = '';
+    }
+}
+
+// --- ПРОФИЛЬ ---
+function updateProfileUI() {
+    document.getElementById('my-name').innerText = currentUser.name;
+    document.getElementById('my-avatar').innerText = currentUser.name[0].toUpperCase();
+    document.getElementById('my-avatar').style.background = currentUser.color;
+    document.getElementById('edit-profile-name').value = currentUser.name;
+    document.getElementById('edit-profile-color').value = currentUser.color;
+}
+
+function saveProfile() {
+    const newName = document.getElementById('edit-profile-name').value.trim();
+    const newColor = document.getElementById('edit-profile-color').value;
+    if (newName) currentUser.name = newName;
+    currentUser.color = newColor;
+    updateProfileUI();
+    closeModal('profile-modal');
+}
+
+// --- ГОЛОСОВОЙ ЗВОНОК WebRTC ---
+let peerConnection = null, localStream = null;
+const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
+async function initiateCall() {
+    initAudio();
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch(e) {
+        alert('Разрешите микрофон в настройках браузера!');
+        return;
+    }
+    document.getElementById('voice-panel').style.display = 'flex';
+    sendPacket('CALL_OFFER');
+}
+
+async function answerCall() {
+    initAudio();
+    document.getElementById('incoming-call-modal').style.display = 'none';
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch(e) {
+        rejectCall(); return;
+    }
+    document.getElementById('voice-panel').style.display = 'flex';
+    sendPacket('CALL_ACCEPTED');
+}
+
+function rejectCall() {
+    document.getElementById('incoming-call-modal').style.display = 'none';
+    sendPacket('CALL_REJECTED');
+}
+
+async function startWebRTC(isInitiator) {
+    peerConnection = new RTCPeerConnection(rtcConfig);
+    localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
+    peerConnection.ontrack = e => document.getElementById('remote-audio').srcObject = e.streams[0];
+    peerConnection.onicecandidate = e => { if (e.candidate) sendPacket('RTC_CANDIDATE', { candidate: e.candidate }); };
+
+    if (isInitiator) {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        sendPacket('RTC_OFFER', { sdp: offer });
+    }
+}
+
+async function handleRtcOffer(sdp) {
+    if (!peerConnection) await startWebRTC(false);
+    await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
+    const ans = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(ans);
+    sendPacket('RTC_ANSWER', { sdp: ans });
+}
+
+function hangUp() {
+    sendPacket('CALL_ENDED');
+    cleanUpCall();
+}
+
+function cleanUpCall() {
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    if (peerConnection) { peerConnection.close(); peerConnection = null; }
+    document.getElementById('voice-panel').style.display = 'none';
+    document.getElementById('incoming-call-modal').style.display = 'none';
+}
+
+function toggleMute() {
+    if (localStream) {
+        const track = localStream.getAudioTracks()[0];
+        track.enabled = !track.enabled;
+        document.getElementById('btn-mic').innerText = track.enabled ? '🎙 Микрофон' : '🔇 Заглушен';
+    }
+}
+
+// Модалки
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }
+</script>
+</body>
+</html>

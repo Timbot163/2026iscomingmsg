@@ -26,10 +26,10 @@
 
         .app-container { display: flex; width: 100vw; height: 100vh; }
 
-        /* СЕРВЕРЫ */
+        /* 1. ПАНЕЛЬ СЕРВЕРОВ */
         .servers-sidebar {
             width: 72px; background: var(--bg-server); display: flex; flex-direction: column;
-            align-items: center; padding: 12px 0; gap: 8px; overflow-y: auto;
+            align-items: center; padding: 12px 0; gap: 8px; overflow-y: auto; flex-shrink: 0;
         }
         .server-icon {
             width: 48px; height: 48px; background: var(--bg-chat); border-radius: 50%;
@@ -40,9 +40,9 @@
         .server-icon.add-btn { color: var(--green); border: 1px dashed var(--green); background: transparent; }
         .server-icon.add-btn:hover { background: var(--green); color: #fff; border-radius: 16px; }
 
-        /* КАНАЛЫ */
+        /* 2. КАНАЛЫ */
         .channels-sidebar {
-            width: 240px; background: var(--bg-channels); display: flex; flex-direction: column;
+            width: 240px; background: var(--bg-channels); display: flex; flex-direction: column; flex-shrink: 0;
         }
         .server-header {
             height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
@@ -79,7 +79,7 @@
         .voice-btn { background: rgba(255,255,255,0.08); border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         .voice-btn.danger { background: var(--red); }
 
-        /* ПРОФИЛЬ */
+        /* ПРОФИЛЬ СНИЗУ */
         .user-footer {
             height: 54px; background: var(--bg-user); display: flex; align-items: center;
             padding: 0 10px; justify-content: space-between; cursor: pointer;
@@ -87,7 +87,8 @@
         .user-footer:hover { background: #282a2e; }
         .avatar {
             width: 32px; height: 32px; border-radius: 50%; background: var(--blurple);
-            display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff; position: relative;
+            display: flex; align-items: center; justify-content: center; font-weight: bold; color: #fff;
+            position: relative; background-size: cover; background-position: center; flex-shrink: 0;
         }
         .status-dot {
             width: 10px; height: 10px; border-radius: 50%; background: var(--green);
@@ -95,7 +96,7 @@
         }
 
         /* 3. ЧАТ */
-        .chat-area { flex: 1; background: var(--bg-chat); display: flex; flex-direction: column; }
+        .chat-area { flex: 1; background: var(--bg-chat); display: flex; flex-direction: column; min-width: 0; }
         .chat-header {
             height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
             border-bottom: 1px solid #202225; color: var(--text-header); font-weight: bold;
@@ -150,6 +151,18 @@
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
+        /* 4. СПИСОК УЧАСТНИКОВ (ПРАВАЯ ПАНЕЛЬ) */
+        .members-sidebar {
+            width: 220px; background: var(--bg-channels); display: flex; flex-direction: column;
+            padding: 16px 10px; overflow-y: auto; flex-shrink: 0; border-left: 1px solid #202225;
+        }
+        .member-item {
+            display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; cursor: pointer;
+        }
+        .member-item:hover { background: rgba(255,255,255,0.05); }
+        .member-name { font-size: 14px; color: var(--text-normal); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .owner-crown { color: #f1c40f; font-size: 13px; }
+
         /* МОДАЛКИ */
         .modal-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -178,8 +191,9 @@
 
     <audio id="remote-audio" autoplay></audio>
     <input type="file" id="file-uploader" style="display: none;" onchange="handleFileUpload(event)">
+    <input type="file" id="avatar-uploader" accept="image/*" style="display: none;" onchange="handleAvatarFileSelect(event)">
 
-    <!-- 1. МОДАЛКА АВТОРИЗАЦИИ (ВХОД И РЕГИСТРАЦИЯ) -->
+    <!-- 1. МОДАЛКА АВТОРИЗАЦИИ -->
     <div id="auth-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box">
             <h2 style="margin-bottom: 10px;">Discord Web</h2>
@@ -188,7 +202,7 @@
                 <div class="modal-tab active" id="tab-register" onclick="switchAuthTab('register')">Регистрация</div>
             </div>
 
-            <input type="text" id="auth-username" placeholder="Имя пользователя (Логин)">
+            <input type="text" id="auth-username" placeholder="Имя пользователя">
             <input type="password" id="auth-password" placeholder="Придумайте пароль">
 
             <button class="call-header-btn" id="btn-auth-submit" style="width: 100%; justify-content: center; margin-top: 10px; padding: 10px;" onclick="handleAuthSubmit()">ЗАРЕГИСТРИРОВАТЬСЯ</button>
@@ -196,7 +210,7 @@
         </div>
     </div>
 
-    <!-- 2. МОДАЛКА ДОБАВЛЕНИЯ СЕРВЕРА (СОЗДАТЬ ИЛИ ПО ИНВАЙТУ) -->
+    <!-- 2. МОДАЛКА СЕРВЕРОВ (СОЗДАНИЕ / ИНВАЙТ) -->
     <div id="add-server-modal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-tabs">
@@ -218,11 +232,11 @@
         </div>
     </div>
 
-    <!-- 3. МОДАЛКА ПРИГЛАШЕНИЯ ДРУЗЕЙ -->
+    <!-- 3. МОДАЛКА ИНВАЙТА -->
     <div id="invite-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>Пригласить друзей</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Отправьте эту ссылку другу, чтобы он зашел на сервер:</p>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Отправьте эту ссылку другу, чтобы он зашел к вам на сервер:</p>
             <input type="text" id="invite-link-display" readonly>
             <button class="call-header-btn" id="btn-copy-invite" style="width: 100%; justify-content: center;" onclick="copyInviteLink()">📋 Скопировать ссылку</button>
             <button class="voice-btn" style="width: 100%; margin-top: 8px;" onclick="closeModal('invite-modal')">Закрыть</button>
@@ -241,16 +255,19 @@
         </div>
     </div>
 
-    <!-- 5. МОДАЛКА ПРОФИЛЯ -->
+    <!-- 5. МОДАЛКА ПРОФИЛЯ С ЗАГРУЗКОЙ АВАТАРКИ -->
     <div id="profile-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>Настройки профиля</h3>
+            <div style="margin: 10px 0; display:flex; flex-direction:column; align-items:center;">
+                <div class="avatar" id="edit-avatar-preview" style="width: 64px; height: 64px; font-size: 24px; margin-bottom: 8px;"></div>
+                <button class="voice-btn" onclick="document.getElementById('avatar-uploader').click()">📷 Загрузить свою аватарку</button>
+            </div>
+
             <input type="text" id="edit-profile-name" placeholder="Ваш никнейм">
-            <label style="font-size: 12px; color: var(--text-muted); display: block; text-align: left; margin-top: 4px;">Цвет аватарки:</label>
-            <input type="color" id="edit-profile-color" style="height: 38px; cursor: pointer; padding: 2px;">
             <div style="display:flex; gap:8px; margin-top:10px;">
                 <button class="call-header-btn" style="flex:1; justify-content:center;" onclick="saveProfile()">Сохранить</button>
-                <button class="voice-btn danger" style="flex:1;" onclick="logout()">Выйти из аккаунта</button>
+                <button class="voice-btn danger" style="flex:1;" onclick="logout()">Выйти</button>
             </div>
             <button class="voice-btn" style="width: 100%; margin-top: 8px;" onclick="closeModal('profile-modal')">Закрыть</button>
         </div>
@@ -280,17 +297,16 @@
                 <span style="font-size: 12px;">▼</span>
             </div>
 
-            <!-- Выпадающее меню сервера -->
             <div class="dropdown-menu" id="server-dropdown">
                 <div class="dropdown-item" onclick="openInviteModal()"><span>👥 Пригласить людей</span> <span>+</span></div>
-                <div class="dropdown-item" onclick="openModal('create-channel-modal')"><span>➕ Создать канал</span></div>
+                <div class="dropdown-item" id="menu-create-channel-opt" onclick="openModal('create-channel-modal')"><span>➕ Создать канал</span></div>
                 <div class="dropdown-item danger" onclick="leaveCurrentServer()"><span>🚪 Покинуть сервер</span></div>
             </div>
 
             <div class="channels-list">
                 <div class="category-header">
                     <span>Текстовые каналы</span>
-                    <span style="cursor: pointer; font-size: 14px;" onclick="openModal('create-channel-modal')">+</span>
+                    <span id="btn-add-channel-plus" style="cursor: pointer; font-size: 14px;" onclick="openModal('create-channel-modal')">+</span>
                 </div>
                 <div id="channel-items-container"></div>
             </div>
@@ -333,6 +349,14 @@
                 </div>
             </div>
         </div>
+
+        <!-- 4. СПИСОК УЧАСТНИКОВ ОНЛАЙН -->
+        <div class="members-sidebar">
+            <div class="category-header" style="padding: 4px 6px;">УЧАСТНИКИ ОНЛАЙН</div>
+            <div id="members-list-container">
+                <!-- Участники генерируются тут -->
+            </div>
+        </div>
     </div>
 
 <script>
@@ -354,40 +378,47 @@ function playDiscordPing() {
     osc.start(); osc.stop(audioCtx.currentTime + 0.3);
 }
 
-// =========================================================================
-//         БЕЗОПАСНОЕ ШИФРОВАНИЕ ДЛЯ ЛЮБЫХ ЯЗЫКОВ И СИМВОЛОВ (UTF-8)
-// =========================================================================
-function safeEncode(str) {
-    return encodeURIComponent(str);
-}
-function safeDecode(str) {
-    try {
-        return decodeURIComponent(str);
-    } catch(e) {
-        return str;
-    }
-}
+function safeEncode(str) { return encodeURIComponent(str); }
+function safeDecode(str) { try { return decodeURIComponent(str); } catch(e) { return str; } }
 
 // =========================================================================
-//                  СИСТЕМА АККАУНТОВ И АВТОРИЗАЦИИ
+//                  СИСТЕМА АККАУНТОВ И ЕДИНЫХ СЕРВЕРОВ
 // =========================================================================
-let authMode = 'register'; // По умолчанию открываем регистрацию
+let authMode = 'register';
 let currentUser = null;
 let userServers = [];
 let currentServerIndex = 0;
 let currentChannelName = 'общий';
 let mqttClient = null;
 
-function getAccountsDB() {
-    return JSON.parse(localStorage.getItem('dc_accounts_db_v2') || '{}');
-}
-function saveAccountsDB(db) {
-    localStorage.setItem('dc_accounts_db_v2', JSON.stringify(db));
+// Список участников онлайн на сервере: { [userId]: { id, name, avatarUrl, serverId, lastPing } }
+let onlineMembers = {};
+
+function getAccountsDB() { return JSON.parse(localStorage.getItem('dc_accounts_db_v3') || '{}'); }
+function saveAccountsDB(db) { localStorage.setItem('dc_accounts_db_v3', JSON.stringify(db)); }
+
+// ЕДИНЫЕ ГЛОБАЛЬНЫЕ СЕРВЕРЫ (ОДИНАКОВЫЕ ID У ВСЕХ ДРУЗЕЙ!)
+function getDefaultGlobalServers() {
+    return [
+        {
+            id: 'global_srv_main',
+            name: 'Главный сервер',
+            icon: '💬',
+            ownerId: 'system',
+            channels: ['общий', 'мемы', 'файлы']
+        },
+        {
+            id: 'global_srv_zone',
+            name: 'Чернобыль 3D',
+            icon: '☢',
+            ownerId: 'system',
+            channels: ['зона', 'посиделки']
+        }
+    ];
 }
 
-// Проверка сохраненной сессии
 function checkExistingSession() {
-    const savedSession = localStorage.getItem('dc_active_user_v2');
+    const savedSession = localStorage.getItem('dc_active_user_v3');
     if (savedSession) {
         currentUser = JSON.parse(savedSession);
         initUserEnvironment();
@@ -422,33 +453,29 @@ function handleAuthSubmit() {
 
     if (authMode === 'register') {
         if (db[userKey]) {
-            errBox.innerText = 'Пользователь с таким логином уже существует! Нажмите "Вход".';
+            errBox.innerText = 'Пользователь с таким логином уже есть! Нажмите "Вход".';
             errBox.style.display = 'block';
             return;
         }
 
-        // Успешная регистрация
         const newUser = {
             id: 'u_' + Math.random().toString(36).substring(7),
             name: username,
             password: safeEncode(password),
+            avatarUrl: '', // Своя картинка-аватарка
             color: '#' + Math.floor(Math.random()*16777215).toString(16),
-            servers: [
-                createDefaultServerObject('Главный сервер', '💬'),
-                createDefaultServerObject('Чернобыль 3D', '☢')
-            ]
+            servers: getDefaultGlobalServers()
         };
 
         db[userKey] = newUser;
         saveAccountsDB(db);
 
         currentUser = newUser;
-        localStorage.setItem('dc_active_user_v2', JSON.stringify(currentUser));
+        localStorage.setItem('dc_active_user_v3', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initUserEnvironment();
 
     } else {
-        // Вход
         const account = db[userKey];
         if (!account || account.password !== safeEncode(password)) {
             errBox.innerText = 'Неверный логин или пароль!';
@@ -457,60 +484,45 @@ function handleAuthSubmit() {
         }
 
         currentUser = account;
-        localStorage.setItem('dc_active_user_v2', JSON.stringify(currentUser));
+        localStorage.setItem('dc_active_user_v3', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initUserEnvironment();
     }
 }
 
-// Отправка по Enter
-document.getElementById('auth-password').addEventListener('keydown', e => {
-    if (e.key === 'Enter') handleAuthSubmit();
-});
-document.getElementById('auth-username').addEventListener('keydown', e => {
-    if (e.key === 'Enter') handleAuthSubmit();
-});
+document.getElementById('auth-password').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
+document.getElementById('auth-username').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
 
 function logout() {
-    localStorage.removeItem('dc_active_user_v2');
+    localStorage.removeItem('dc_active_user_v3');
     window.location.reload();
 }
 
 function initUserEnvironment() {
     initAudio();
-    userServers = currentUser.servers || [];
-    if (userServers.length === 0) {
-        userServers.push(createDefaultServerObject('Главный сервер', '💬'));
-    }
-
+    userServers = currentUser.servers || getDefaultGlobalServers();
     updateProfileUI();
     renderServerBar();
     renderChannels();
     connectMQTT();
     checkUrlInvite();
+
+    // Запуск отслеживания онлайна участников
+    setInterval(broadcastPresence, 7000);
+    broadcastPresence();
 }
 
 function saveUserAccountData() {
     currentUser.servers = userServers;
-    localStorage.setItem('dc_active_user_v2', JSON.stringify(currentUser));
+    localStorage.setItem('dc_active_user_v3', JSON.stringify(currentUser));
     const db = getAccountsDB();
     db[currentUser.name.toLowerCase()] = currentUser;
     saveAccountsDB(db);
 }
 
 // =========================================================================
-//            СИСТЕМА СЕРВЕРОВ И ПРИГЛАШЕНИЙ (БЕЗ ОШИБОК UTF-8)
+//            СЕРВЕРЫ, КАНАЛЫ И ПРАВА СОЗДАТЕЛЯ (👑)
 // =========================================================================
-function createDefaultServerObject(name, icon) {
-    const sId = 'srv_' + Math.random().toString(36).substring(7);
-    return {
-        id: sId,
-        name: name,
-        icon: icon || name[0].toUpperCase(),
-        channels: ['общий', 'мемы', 'файлы']
-    };
-}
-
 function renderServerBar() {
     const bar = document.getElementById('server-bar');
     bar.querySelectorAll('.server-item').forEach(e => e.remove());
@@ -532,13 +544,20 @@ function switchServer(idx) {
     document.getElementById('current-server-title').innerText = s.name;
     renderServerBar();
     renderChannels();
+    renderMembersList();
     document.getElementById('messages').innerHTML = '';
+    broadcastPresence();
 }
 
 function renderChannels() {
     const container = document.getElementById('channel-items-container');
     container.innerHTML = '';
     const s = userServers[currentServerIndex];
+
+    // ПРАВА: Только создатель может добавлять каналы
+    const isOwner = (s.ownerId === currentUser.id) || (s.ownerId === 'system');
+    document.getElementById('btn-add-channel-plus').style.display = isOwner ? 'block' : 'none';
+    document.getElementById('menu-create-channel-opt').style.display = isOwner ? 'flex' : 'none';
 
     s.channels.forEach(ch => {
         const item = document.createElement('div');
@@ -565,11 +584,10 @@ window.addEventListener('click', e => {
     }
 });
 
-// Безопасная генерация ссылки приглашения (UTF-8)
 function openInviteModal() {
     document.getElementById('server-dropdown').style.display = 'none';
     const s = userServers[currentServerIndex];
-    const inviteCode = safeEncode(JSON.stringify({ id: s.id, name: s.name, icon: s.icon }));
+    const inviteCode = safeEncode(JSON.stringify({ id: s.id, name: s.name, icon: s.icon, ownerId: s.ownerId, channels: s.channels }));
     const inviteUrl = `${window.location.origin}${window.location.pathname}#invite=${inviteCode}`;
 
     document.getElementById('invite-link-display').value = inviteUrl;
@@ -595,7 +613,14 @@ function switchServerModalTab(tab) {
 function confirmCreateServer() {
     const name = document.getElementById('new-server-name').value.trim();
     if (name) {
-        const newSrv = createDefaultServerObject(name, name[0].toUpperCase());
+        const sId = 'srv_' + Math.random().toString(36).substring(7);
+        const newSrv = {
+            id: sId,
+            name: name,
+            icon: name[0].toUpperCase(),
+            ownerId: currentUser.id, // ТЕКУЩИЙ ЮЗЕР — ВЛАДЕЛЕЦ!
+            channels: ['общий', 'мемы']
+        };
         userServers.push(newSrv);
         saveUserAccountData();
         switchServer(userServers.length - 1);
@@ -615,9 +640,7 @@ function confirmJoinByInvite() {
 function joinServerByCode(rawCode) {
     try {
         let code = rawCode;
-        if (code.includes('#invite=')) {
-            code = code.split('#invite=')[1];
-        }
+        if (code.includes('#invite=')) code = code.split('#invite=')[1];
         const srvData = JSON.parse(safeDecode(code));
         if (srvData && srvData.name) {
             if (userServers.some(s => s.id === srvData.id)) {
@@ -625,10 +648,11 @@ function joinServerByCode(rawCode) {
                 return;
             }
             const srvObj = {
-                id: srvData.id || ('srv_' + Date.now()),
+                id: srvData.id,
                 name: srvData.name,
                 icon: srvData.icon || srvData.name[0].toUpperCase(),
-                channels: ['общий', 'мемы']
+                ownerId: srvData.ownerId,
+                channels: srvData.channels || ['общий']
             };
             userServers.push(srvObj);
             saveUserAccountData();
@@ -653,23 +677,90 @@ function leaveCurrentServer() {
         alert('Нельзя покинуть единственный сервер!');
         return;
     }
-    if (confirm(`Вы уверены, что хотите покинуть сервер "${userServers[currentServerIndex].name}"?`)) {
+    if (confirm(`Покинуть сервер "${userServers[currentServerIndex].name}"?`)) {
         userServers.splice(currentServerIndex, 1);
         saveUserAccountData();
         switchServer(0);
     }
 }
 
+// СОЗДАНИЕ КАНАЛА (ТОЛЬКО ДЛЯ СОЗДАТЕЛЯ) И СИНХРОНИЗАЦИЯ С ДРУГОМ!
 function confirmCreateChannel() {
+    const s = userServers[currentServerIndex];
+    if (s.ownerId !== currentUser.id && s.ownerId !== 'system') {
+        alert('Только создатель сервера может создавать новые каналы!');
+        return;
+    }
+
     const name = document.getElementById('new-channel-name').value.trim().toLowerCase().replace(/\s+/g, '-');
     if (name) {
-        userServers[currentServerIndex].channels.push(name);
+        s.channels.push(name);
         saveUserAccountData();
         currentChannelName = name;
         renderChannels();
         closeModal('create-channel-modal');
         document.getElementById('new-channel-name').value = '';
+
+        // Оповещаем друга, что создан новый канал!
+        sendPacket('CHANNEL_SYNC', { serverId: s.id, channelName: name });
     }
+}
+
+// =========================================================================
+//                   СПИСОК УЧАСТНИКОВ ОНЛАЙН
+// =========================================================================
+function broadcastPresence() {
+    if (!currentUser || !userServers[currentServerIndex]) return;
+    const currentSrvId = userServers[currentServerIndex].id;
+
+    // Добавляем себя
+    onlineMembers[currentUser.id] = {
+        id: currentUser.id,
+        name: currentUser.name,
+        avatarUrl: currentUser.avatarUrl,
+        color: currentUser.color,
+        serverId: currentSrvId,
+        lastPing: Date.now()
+    };
+
+    sendPacket('PRESENCE', {
+        serverId: currentSrvId,
+        avatarUrl: currentUser.avatarUrl
+    });
+
+    renderMembersList();
+}
+
+function renderMembersList() {
+    const container = document.getElementById('members-list-container');
+    container.innerHTML = '';
+    const currentSrv = userServers[currentServerIndex];
+    if (!currentSrv) return;
+
+    const now = Date.now();
+
+    // Фильтруем участников, активных за последние 20 секунд на этом сервере
+    const serverMembers = Object.values(onlineMembers).filter(m => {
+        return m.serverId === currentSrv.id && (now - m.lastPing < 20000);
+    });
+
+    serverMembers.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'member-item';
+        const isOwner = (m.id === currentSrv.ownerId);
+
+        const avatarBg = m.avatarUrl ? `background-image: url('${m.avatarUrl}');` : `background: ${m.color};`;
+        const avatarLetter = !m.avatarUrl ? m.name[0].toUpperCase() : '';
+
+        item.innerHTML = `
+            <div class="avatar" style="${avatarBg}">${avatarLetter}</div>
+            <span class="member-name">
+                ${escapeHtml(m.name)}
+                ${isOwner ? '<span class="owner-crown" title="Создатель сервера">👑</span>' : ''}
+            </span>
+        `;
+        container.appendChild(item);
+    });
 }
 
 // =========================================================================
@@ -677,7 +768,7 @@ function confirmCreateChannel() {
 // =========================================================================
 function connectMQTT() {
     mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-    const topic = 'discord_v3_network';
+    const topic = 'discord_v4_unified_network';
 
     mqttClient.on('connect', () => mqttClient.subscribe(topic));
 
@@ -692,12 +783,13 @@ function connectMQTT() {
 
 function sendPacket(type, extra = {}) {
     if (!mqttClient || !currentUser) return;
-    const topic = 'discord_v3_network';
+    const topic = 'discord_v4_unified_network';
     mqttClient.publish(topic, JSON.stringify({
         senderId: currentUser.id,
         author: currentUser.name,
         color: currentUser.color,
-        server: userServers[currentServerIndex].id,
+        avatarUrl: currentUser.avatarUrl,
+        server: userServers[currentServerIndex] ? userServers[currentServerIndex].id : 'global_srv_main',
         channel: currentChannelName,
         type: type,
         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
@@ -706,12 +798,36 @@ function sendPacket(type, extra = {}) {
 }
 
 function handleIncomingPacket(data) {
-    if (data.type === 'CHAT_MSG') {
+    // 1. Онлайн участников
+    if (data.type === 'PRESENCE') {
+        onlineMembers[data.senderId] = {
+            id: data.senderId,
+            name: data.author,
+            avatarUrl: data.avatarUrl,
+            color: data.color,
+            serverId: data.serverId,
+            lastPing: Date.now()
+        };
+        renderMembersList();
+    }
+    // 2. Чат
+    else if (data.type === 'CHAT_MSG') {
         if (userServers[currentServerIndex] && data.server === userServers[currentServerIndex].id && data.channel === currentChannelName) {
             renderMessage(data);
             playDiscordPing();
         }
-    } else if (data.type === 'CALL_OFFER') {
+    }
+    // 3. Синхронизация нового канала от друга
+    else if (data.type === 'CHANNEL_SYNC') {
+        const srv = userServers.find(s => s.id === data.serverId);
+        if (srv && !srv.channels.includes(data.channelName)) {
+            srv.channels.push(data.channelName);
+            saveUserAccountData();
+            if (userServers[currentServerIndex].id === data.serverId) renderChannels();
+        }
+    }
+    // 4. Звонки
+    else if (data.type === 'CALL_OFFER') {
         document.getElementById('caller-name').innerText = `${data.author} звонит вам`;
         document.getElementById('incoming-call-modal').style.display = 'block';
     } else if (data.type === 'CALL_ACCEPTED') {
@@ -738,6 +854,7 @@ function sendTextMessage() {
     renderMessage({
         author: currentUser.name,
         color: currentUser.color,
+        avatarUrl: currentUser.avatarUrl,
         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
         ...msgData
     });
@@ -757,8 +874,7 @@ async function handleFileUpload(e) {
             formData.append('image', file);
 
             const res = await fetch('https://api.imgbb.com/1/upload?key=6d207e02198a847aa58d0349fce402b7', {
-                method: 'POST',
-                body: formData
+                method: 'POST', body: formData
             });
             const json = await res.json();
             if (json && json.data && (json.data.display_url || json.data.url)) {
@@ -768,25 +884,22 @@ async function handleFileUpload(e) {
                 renderMessage({
                     author: currentUser.name,
                     color: currentUser.color,
+                    avatarUrl: currentUser.avatarUrl,
                     time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
                     ...msgData
                 });
             }
-        } catch(err) {
-            alert('Ошибка загрузки фото.');
-        }
+        } catch(err) { alert('Ошибка загрузки фото.'); }
     } else {
         const reader = new FileReader();
         reader.onload = () => {
-            if (file.size > 80 * 1024) {
-                alert('Файлы поддерживаются до 80 КБ. Фотографии же можно отправлять любых размеров!');
-                return;
-            }
+            if (file.size > 80 * 1024) { alert('Файлы поддерживаются до 80 КБ!'); return; }
             const msgData = { msgType: 'file', fileUrl: reader.result, fileName: file.name };
             sendPacket('CHAT_MSG', msgData);
             renderMessage({
                 author: currentUser.name,
                 color: currentUser.color,
+                avatarUrl: currentUser.avatarUrl,
                 time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
                 ...msgData
             });
@@ -816,6 +929,7 @@ async function toggleVoiceRecord() {
                     renderMessage({
                         author: currentUser.name,
                         color: currentUser.color,
+                        avatarUrl: currentUser.avatarUrl,
                         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
                         ...msgData
                     });
@@ -834,7 +948,7 @@ async function toggleVoiceRecord() {
     }
 }
 
-// Отрисовка сообщений
+// Отрисовка сообщений с реальными аватарками
 function renderMessage(data) {
     const container = document.getElementById('messages');
     const msg = document.createElement('div');
@@ -861,8 +975,11 @@ function renderMessage(data) {
         `;
     }
 
+    const avatarBg = data.avatarUrl ? `background-image: url('${data.avatarUrl}');` : `background: ${data.color};`;
+    const avatarLetter = !data.avatarUrl ? data.author[0].toUpperCase() : '';
+
     msg.innerHTML = `
-        <div class="avatar" style="background:${data.color}">${data.author[0].toUpperCase()}</div>
+        <div class="avatar" style="${avatarBg}">${avatarLetter}</div>
         <div class="msg-body">
             <div><span class="msg-author">${data.author}</span><span class="msg-time">${data.time}</span></div>
             ${contentHtml}
@@ -879,21 +996,58 @@ function playVoiceNote(btn, audioSrc) {
     audio.onended = () => btn.innerText = '▶';
 }
 
+// =========================================================================
+//                   СВОИ АВАТАРКИ В ПРОФИЛЕ
+// =========================================================================
+function handleAvatarFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Сжимаем аватарку до 128px
+    const reader = new FileReader();
+    reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 120; canvas.height = 120;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, 120, 120);
+            currentUser.avatarUrl = canvas.toDataURL('image/jpeg', 0.8);
+            updateProfileUI();
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
 function updateProfileUI() {
     document.getElementById('my-name').innerText = currentUser.name;
-    document.getElementById('my-avatar').innerText = currentUser.name[0].toUpperCase();
-    document.getElementById('my-avatar').style.background = currentUser.color;
     document.getElementById('edit-profile-name').value = currentUser.name;
-    document.getElementById('edit-profile-color').value = currentUser.color;
+
+    const myAv = document.getElementById('my-avatar');
+    const editPreview = document.getElementById('edit-avatar-preview');
+
+    if (currentUser.avatarUrl) {
+        myAv.style.backgroundImage = `url('${currentUser.avatarUrl}')`;
+        myAv.innerText = '';
+        editPreview.style.backgroundImage = `url('${currentUser.avatarUrl}')`;
+        editPreview.innerText = '';
+    } else {
+        myAv.style.backgroundImage = 'none';
+        myAv.style.background = currentUser.color;
+        myAv.innerText = currentUser.name[0].toUpperCase();
+        editPreview.style.backgroundImage = 'none';
+        editPreview.style.background = currentUser.color;
+        editPreview.innerText = currentUser.name[0].toUpperCase();
+    }
 }
 
 function saveProfile() {
     const newName = document.getElementById('edit-profile-name').value.trim();
-    const newColor = document.getElementById('edit-profile-color').value;
     if (newName) currentUser.name = newName;
-    currentUser.color = newColor;
     saveUserAccountData();
     updateProfileUI();
+    broadcastPresence();
     closeModal('profile-modal');
 }
 

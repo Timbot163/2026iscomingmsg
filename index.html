@@ -105,22 +105,30 @@
 
         /* Вложения в чате */
         .chat-image {
-            max-width: 380px; max-height: 280px; border-radius: 8px; margin-top: 5px; cursor: pointer; border: 1px solid #444;
+            max-width: 420px; max-height: 320px; border-radius: 8px; margin-top: 5px; cursor: pointer; border: 1px solid #444; display: block;
+        }
+        .chat-video {
+            max-width: 420px; max-height: 300px; border-radius: 8px; margin-top: 5px; outline: none;
         }
         .file-card {
             background: #2b2d31; border: 1px solid #383a40; padding: 10px 14px; border-radius: 6px;
             display: flex; align-items: center; gap: 12px; width: fit-content; margin-top: 5px;
         }
         .file-download-btn {
-            background: var(--blurple); color: #fff; text-decoration: none; padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: bold;
+            background: var(--blurple); color: #fff; text-decoration: none; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;
         }
+        .file-download-btn:hover { background: var(--blurple-hover); }
 
-        /* Голосовое сообщение в чате */
         .voice-note-card {
             background: #2b2d31; border-radius: 20px; padding: 6px 14px; display: flex; align-items: center; gap: 10px; margin-top: 4px; border: 1px solid #383a40;
         }
         .vn-play-btn {
             width: 30px; height: 30px; border-radius: 50%; background: var(--blurple); color: #fff; border: none; cursor: pointer; font-size: 12px;
+        }
+
+        /* Индикатор загрузки в чате */
+        .uploading-bar {
+            font-size: 13px; color: var(--yellow); padding: 8px 12px; background: rgba(240, 178, 50, 0.1); border-radius: 6px; border: 1px solid var(--yellow);
         }
 
         /* ПАНЕЛЬ ВВОДА */
@@ -152,7 +160,6 @@
         }
         .modal-actions { display: flex; gap: 8px; margin-top: 10px; }
 
-        /* Всплывающий звонок */
         #incoming-call-modal {
             display: none; position: absolute; top: 20px; right: 20px; background: var(--bg-channels);
             border: 2px solid var(--blurple); padding: 16px; border-radius: 8px; z-index: 200; text-align: center;
@@ -228,7 +235,6 @@
     <div class="app-container">
         <!-- 1. СЕРВЕРЫ -->
         <div class="servers-sidebar" id="server-bar">
-            <!-- Динамические серверы -->
             <div class="server-icon add-btn" title="Создать сервер" onclick="openModal('create-server-modal')">+</div>
         </div>
 
@@ -244,12 +250,9 @@
                     <span>Текстовые каналы</span>
                     <span style="cursor: pointer; font-size: 14px;" onclick="openModal('create-channel-modal')">+</span>
                 </div>
-                <div id="channel-items-container">
-                    <!-- Каналы генерируются тут -->
-                </div>
+                <div id="channel-items-container"></div>
             </div>
 
-            <!-- ПАНЕЛЬ ГОЛОСА -->
             <div id="voice-panel">
                 <div class="voice-status"><span>🟢</span> Голос подключен</div>
                 <div style="display:flex; justify-content:space-between; margin-top:4px;">
@@ -258,13 +261,12 @@
                 </div>
             </div>
 
-            <!-- ПРОФИЛЬ СНИЗУ -->
             <div class="user-footer" onclick="openModal('profile-modal')">
                 <div style="display:flex; align-items:center; gap:8px;">
                     <div class="avatar" id="my-avatar">Я<div class="status-dot"></div></div>
                     <div>
                         <div id="my-name" style="font-size: 13px; font-weight:bold; color:#fff;">Сталкер</div>
-                        <div style="font-size: 11px; color:var(--text-muted);">Нажми для смены ника</div>
+                        <div style="font-size: 11px; color:var(--text-muted);">Сменить ник</div>
                     </div>
                 </div>
                 <span style="color: var(--text-muted); font-size: 14px;">⚙</span>
@@ -278,13 +280,11 @@
                 <button class="call-header-btn" onclick="initiateCall()">📞 Позвонить</button>
             </div>
 
-            <div class="messages-container" id="messages">
-                <!-- Сообщения -->
-            </div>
+            <div class="messages-container" id="messages"></div>
 
             <div class="chat-input-wrapper">
                 <div class="chat-input-box">
-                    <button class="input-action-btn" title="Отправить фото или файл" onclick="document.getElementById('file-uploader').click()">➕</button>
+                    <button class="input-action-btn" title="Прикрепить файл или фото (без лимита!)" onclick="document.getElementById('file-uploader').click()">➕</button>
                     <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
                     <button class="input-action-btn" id="voice-record-btn" title="Записать голосовое сообщение" onclick="toggleVoiceRecord()">🎙</button>
                     <button class="call-header-btn" style="padding: 6px 12px;" onclick="sendTextMessage()">Отправить</button>
@@ -294,7 +294,7 @@
     </div>
 
 <script>
-// --- АУДИО УВЕДОМЛЕНИЯ ---
+// --- АУДИО ---
 let audioCtx = null;
 function initAudio() {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -312,7 +312,7 @@ function playDiscordPing() {
     osc.start(); osc.stop(audioCtx.currentTime + 0.3);
 }
 
-// --- ДАННЫЕ ПРОФИЛЯ И СЕРВЕРОВ ---
+// --- ПРОФИЛЬ И СЕРВЕРЫ ---
 let currentUser = {
     id: Math.random().toString(36).substring(7),
     name: 'Сталкер_' + Math.floor(Math.random() * 900 + 100),
@@ -323,7 +323,7 @@ let roomCode = 'сталкеры-2024';
 let mqttClient = null;
 
 let servers = [
-    { id: 'srv-1', name: 'Главный сервер', icon: '💬', channels: ['общий', 'мемы', 'игры'] },
+    { id: 'srv-1', name: 'Главный сервер', icon: '💬', channels: ['общий', 'мемы', 'файлы'] },
     { id: 'srv-2', name: 'Чернобыль 3D', icon: '☢', channels: ['зона', 'посиделки'] }
 ];
 let currentServerIndex = 0;
@@ -331,7 +331,6 @@ let currentChannelName = 'общий';
 
 document.getElementById('join-name').value = currentUser.name;
 
-// --- ПОДКЛЮЧЕНИЕ К СЕТИ ---
 function connectToDiscord() {
     initAudio();
     const n = document.getElementById('join-name').value.trim();
@@ -347,9 +346,7 @@ function connectToDiscord() {
     mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
     const topic = 'discord_ultimate_' + encodeURIComponent(roomCode);
 
-    mqttClient.on('connect', () => {
-        mqttClient.subscribe(topic);
-    });
+    mqttClient.on('connect', () => mqttClient.subscribe(topic));
 
     mqttClient.on('message', async (t, payload) => {
         try {
@@ -375,7 +372,6 @@ function sendPacket(type, extra = {}) {
     }));
 }
 
-// --- ОБРАБОТКА ВХОДЯЩИХ СООБЩЕНИЙ ---
 function handleIncomingPacket(data) {
     if (data.type === 'CHAT_MSG') {
         if (data.server === servers[currentServerIndex].id && data.channel === currentChannelName) {
@@ -398,7 +394,7 @@ function handleIncomingPacket(data) {
     }
 }
 
-// --- ОТПРАВКА СООБЩЕНИЙ (ТЕКСТ, ФОТО, ФАЙЛЫ, ГОЛОСОВЫЕ) ---
+// --- ОТПРАВКА СООБЩЕНИЙ ---
 function sendTextMessage() {
     const input = document.getElementById('msg-input');
     const text = input.value.trim();
@@ -417,43 +413,70 @@ function sendTextMessage() {
 }
 document.getElementById('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendTextMessage(); });
 
-// Отправка фото / файлов
+// =========================================================================
+//         НОВАЯ СИСТЕМА ЗАГРУЗКИ БОЛЬШИХ ФАЙЛОВ (БЕЗ ЛИМИТОВ)
+// =========================================================================
 async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 800 * 1024) {
-        alert('Файл слишком большой! Для бесплатного брокера выбирайте файлы до 800 КБ.');
-        return;
-    }
+    // Временная плашка "Загрузка..."
+    const container = document.getElementById('messages');
+    const loadDiv = document.createElement('div');
+    loadDiv.className = 'uploading-bar';
+    loadDiv.innerText = `⏳ Загрузка файла "${file.name}" в облако...`;
+    container.appendChild(loadDiv);
+    container.scrollTop = container.scrollHeight;
 
-    const isImage = file.type.startsWith('image/');
-    const reader = new FileReader();
+    try {
+        // Отправка файла в бесплатное облачное хранилище tmpfiles.org
+        const formData = new FormData();
+        formData.append('file', file);
 
-    reader.onload = () => {
-        const fileData = reader.result;
-        const msgData = {
-            msgType: isImage ? 'image' : 'file',
-            fileData: fileData,
-            fileName: file.name
-        };
-
-        sendPacket('CHAT_MSG', msgData);
-        renderMessage({
-            author: currentUser.name,
-            color: currentUser.color,
-            time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
-            ...msgData
+        const res = await fetch('https://tmpfiles.org/api/v1/upload', {
+            method: 'POST',
+            body: formData
         });
-    };
-    reader.readAsDataURL(file);
+        const json = await res.json();
+
+        loadDiv.remove();
+
+        if (json && json.data && json.data.url) {
+            // Превращаем URL в прямую ссылку на скачивание/просмотр
+            const directUrl = json.data.url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+
+            const isImg = file.type.startsWith('image/');
+            const isVid = file.type.startsWith('video/');
+
+            let type = 'file';
+            if (isImg) type = 'image';
+            if (isVid) type = 'video';
+
+            const msgData = {
+                msgType: type,
+                fileUrl: directUrl,
+                fileName: file.name
+            };
+
+            sendPacket('CHAT_MSG', msgData);
+            renderMessage({
+                author: currentUser.name,
+                color: currentUser.color,
+                time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
+                ...msgData
+            });
+        } else {
+            throw new Error();
+        }
+    } catch (err) {
+        loadDiv.remove();
+        alert('Не удалось загрузить файл в облако. Попробуйте еще раз!');
+    }
     e.target.value = '';
 }
 
-// Запись ГОЛОСОВОГО СООБЩЕНИЯ (ГС)
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
+// Запись ГОЛОСОВЫХ СООБЩЕНИЙ
+let mediaRecorder = null, audioChunks = [], isRecording = false;
 
 async function toggleVoiceRecord() {
     initAudio();
@@ -470,8 +493,7 @@ async function toggleVoiceRecord() {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
                 reader.onload = () => {
-                    const audioBase64 = reader.result;
-                    const msgData = { msgType: 'voice_note', fileData: audioBase64 };
+                    const msgData = { msgType: 'voice_note', fileUrl: reader.result };
                     sendPacket('CHAT_MSG', msgData);
                     renderMessage({
                         author: currentUser.name,
@@ -487,19 +509,17 @@ async function toggleVoiceRecord() {
             mediaRecorder.start();
             isRecording = true;
             btn.classList.add('recording');
-            btn.title = "Идет запись... Нажми еще раз для отправки!";
         } catch(e) {
-            alert('Нет доступа к микрофону для записи голосового!');
+            alert('Нет доступа к микрофону!');
         }
     } else {
         mediaRecorder.stop();
         isRecording = false;
         btn.classList.remove('recording');
-        btn.title = "Записать голосовое сообщение";
     }
 }
 
-// --- ОТРИСОВКА СООБЩЕНИЙ ---
+// --- ОТРИСОВКА СООБЩЕНИЙ В ЧАТЕ ---
 function renderMessage(data) {
     const container = document.getElementById('messages');
     const msg = document.createElement('div');
@@ -509,18 +529,20 @@ function renderMessage(data) {
     if (data.msgType === 'text') {
         contentHtml = `<div class="msg-text">${escapeHtml(data.content)}</div>`;
     } else if (data.msgType === 'image') {
-        contentHtml = `<img src="${data.fileData}" class="chat-image" onclick="window.open('${data.fileData}')">`;
+        contentHtml = `<img src="${data.fileUrl}" class="chat-image" onclick="window.open('${data.fileUrl}')">`;
+    } else if (data.msgType === 'video') {
+        contentHtml = `<video src="${data.fileUrl}" controls class="chat-video"></video>`;
     } else if (data.msgType === 'file') {
         contentHtml = `
             <div class="file-card">
                 <span>📁 ${escapeHtml(data.fileName)}</span>
-                <a href="${data.fileData}" download="${data.fileName}" class="file-download-btn">Скачать</a>
+                <a href="${data.fileUrl}" target="_blank" download="${data.fileName}" class="file-download-btn">Скачать</a>
             </div>
         `;
     } else if (data.msgType === 'voice_note') {
         contentHtml = `
             <div class="voice-note-card">
-                <button class="vn-play-btn" onclick="playVoiceNote(this, '${data.fileData}')">▶</button>
+                <button class="vn-play-btn" onclick="playVoiceNote(this, '${data.fileUrl}')">▶</button>
                 <span style="font-size: 13px;">🎙 Голосовое сообщение</span>
             </div>
         `;
@@ -595,7 +617,7 @@ function confirmCreateServer() {
             id: 'srv-' + Date.now(),
             name: name,
             icon: name[0].toUpperCase(),
-            channels: ['общий', 'флуд']
+            channels: ['общий', 'файлы']
         });
         switchServer(servers.length - 1);
         closeModal('create-server-modal');
@@ -632,7 +654,7 @@ function saveProfile() {
     closeModal('profile-modal');
 }
 
-// --- ГОЛОСОВОЙ ЗВОНОК WebRTC ---
+// --- ГОЛОСОВЫЕ ЗВОНКИ WebRTC ---
 let peerConnection = null, localStream = null;
 const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
@@ -641,7 +663,7 @@ async function initiateCall() {
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch(e) {
-        alert('Разрешите микрофон в настройках браузера!');
+        alert('Разрешите микрофон в браузере!');
         return;
     }
     document.getElementById('voice-panel').style.display = 'flex';

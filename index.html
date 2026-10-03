@@ -105,13 +105,12 @@
 
         /* Вложения: изображения */
         .chat-image {
-            max-width: 320px; max-height: 280px; border-radius: 8px; margin-top: 5px; cursor: pointer;
+            max-width: 360px; max-height: 320px; border-radius: 8px; margin-top: 5px; cursor: pointer;
             border: 1px solid #444; display: block; box-shadow: 0 2px 10px rgba(0,0,0,0.3); transition: transform 0.2s;
-            background: #2b2d31;
         }
         .chat-image:hover { transform: scale(1.02); }
 
-        /* Карточка файла / видео */
+        /* Карточка файла */
         .file-card {
             background: #2b2d31; border: 1px solid #383a40; padding: 10px 14px; border-radius: 6px;
             display: flex; align-items: center; gap: 12px; width: fit-content; margin-top: 5px;
@@ -128,6 +127,10 @@
         }
         .vn-play-btn {
             width: 30px; height: 30px; border-radius: 50%; background: var(--blurple); color: #fff; border: none; cursor: pointer; font-size: 12px;
+        }
+
+        .uploading-bar {
+            font-size: 13px; color: var(--yellow); padding: 8px 12px; background: rgba(240, 178, 50, 0.1); border-radius: 6px; border: 1px solid var(--yellow);
         }
 
         /* ПАНЕЛЬ ВВОДА */
@@ -277,7 +280,7 @@
             <div class="chat-header">
                 <div><span>#</span> <span id="current-channel-header">общий</span></div>
                 <div style="display: flex; gap: 8px;">
-                    <button class="voice-btn" onclick="clearLocalChat()" title="Очистить чат от старых сообщений">Очистить чат</button>
+                    <button class="voice-btn" onclick="clearLocalChat()">Очистить чат</button>
                     <button class="call-header-btn" onclick="initiateCall()">📞 Позвонить</button>
                 </div>
             </div>
@@ -415,97 +418,80 @@ function sendTextMessage() {
 document.getElementById('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendTextMessage(); });
 
 // =========================================================================
-//       ИСПРАВЛЕННЫЙ СЖИМАТЕЛЬ ФОТО (С ЗАЩИТОЙ ОТ ЧЕРНОГО ЭКРАНА)
+//    ОБЛАЧНАЯ ЗАГРУЗКА IMGBB ДЛЯ ФОТО (НАСТОЯЩИЕ ЦВЕТА БЕЗ ЧЕРНЫХ ОШИБОК)
 // =========================================================================
-function compressPhotoWithoutBlackBox(file) {
-    return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = async () => {
-                // Дожидаемся полной расшифровки пикселей в памяти браузера
-                if (img.decode) {
-                    try { await img.decode(); } catch(err) {}
-                }
-
-                const naturalW = img.naturalWidth || img.width || 400;
-                const naturalH = img.naturalHeight || img.height || 300;
-
-                let w = naturalW;
-                let h = naturalH;
-                const maxDim = 550;
-
-                if (w > maxDim || h > maxDim) {
-                    if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
-                    else { w = Math.round((w * maxDim) / h); h = maxDim; }
-                }
-
-                const canvas = document.createElement('canvas');
-                canvas.width = w;
-                canvas.height = h;
-                const ctx = canvas.getContext('2d');
-
-                // 1. ЗАЛИВАЕМ СВЕТЛЫЙ ФОН:
-                // Чтобы прозрачные участки скриншотов или PNG не чернели в JPEG!
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, w, h);
-
-                // 2. РИСУЕМ КАРТИНКУ
-                ctx.drawImage(img, 0, 0, w, h);
-
-                // Экспорт в легкий JPEG (25-35 КБ)
-                resolve(canvas.toDataURL('image/jpeg', 0.72));
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
 async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
+    const container = document.getElementById('messages');
+    const loadDiv = document.createElement('div');
+    loadDiv.className = 'uploading-bar';
+    loadDiv.innerText = `⏳ Загрузка "${file.name}" в облако...`;
+    container.appendChild(loadDiv);
+    container.scrollTop = container.scrollHeight;
+
     const isImg = file.type.startsWith('image/');
 
-    if (isImg) {
-        // ОБРАБОТКА ЛЮБЫХ СКРИНШОТОВ И ФОТО БЕЗ ЧЕРНЫХ КВАДРАТОВ
-        const base64Data = await compressPhotoWithoutBlackBox(file);
-        const msgData = {
-            msgType: 'image',
-            fileUrl: base64Data,
-            fileName: file.name
-        };
-        sendPacket('CHAT_MSG', msgData);
-        renderMessage({
-            author: currentUser.name,
-            color: currentUser.color,
-            time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
-            ...msgData
-        });
-    } else {
-        // ОБЫЧНЫЕ ФАЙЛЫ
-        const reader = new FileReader();
-        reader.onload = () => {
-            if (file.size > 70 * 1024) {
-                alert('Файлы и видео в бесплатной версии поддерживаются до 70 КБ. Картинки и скриншоты можно слать любых размеров!');
-                return;
-            }
-            const msgData = {
-                msgType: 'file',
-                fileUrl: reader.result,
-                fileName: file.name
-            };
-            sendPacket('CHAT_MSG', msgData);
-            renderMessage({
-                author: currentUser.name,
-                color: currentUser.color,
-                time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
-                ...msgData
+    try {
+        if (isImg) {
+            // Загрузка фото через открытый API ImgBB
+            const formData = new FormData();
+            formData.append('image', file);
+
+            const res = await fetch('https://api.imgbb.com/1/upload?key=6d207e02198a847aa58d0349fce402b7', {
+                method: 'POST',
+                body: formData
             });
-        };
-        reader.readAsDataURL(file);
+            const json = await res.json();
+            loadDiv.remove();
+
+            if (json && json.data && (json.data.display_url || json.data.url)) {
+                const imgUrl = json.data.display_url || json.data.url;
+                const msgData = {
+                    msgType: 'image',
+                    fileUrl: imgUrl,
+                    fileName: file.name
+                };
+                sendPacket('CHAT_MSG', msgData);
+                renderMessage({
+                    author: currentUser.name,
+                    color: currentUser.color,
+                    time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
+                    ...msgData
+                });
+            } else {
+                throw new Error();
+            }
+        } else {
+            // Для файлов и документов
+            const reader = new FileReader();
+            reader.onload = () => {
+                loadDiv.remove();
+                if (file.size > 80 * 1024) {
+                    alert('Файлы в бесплатной версии поддерживаются до 80 КБ. Фотографии же можно отправлять любых размеров без лимита!');
+                    return;
+                }
+                const msgData = {
+                    msgType: 'file',
+                    fileUrl: reader.result,
+                    fileName: file.name
+                };
+                sendPacket('CHAT_MSG', msgData);
+                renderMessage({
+                    author: currentUser.name,
+                    color: currentUser.color,
+                    time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
+                    ...msgData
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    } catch(err) {
+        loadDiv.remove();
+        alert('Не удалось отправить файл. Попробуйте еще раз.');
     }
+
     e.target.value = '';
 }
 
@@ -563,7 +549,7 @@ function renderMessage(data) {
     if (data.msgType === 'text') {
         contentHtml = `<div class="msg-text">${escapeHtml(data.content)}</div>`;
     } else if (data.msgType === 'image') {
-        contentHtml = `<img src="${data.fileUrl}" class="chat-image" onclick="window.open('${data.fileUrl}')" title="Кликните, чтобы открыть в полном размере">`;
+        contentHtml = `<img src="${data.fileUrl}" class="chat-image" onclick="window.open('${data.fileUrl}')" title="Кликните для просмотра в полном размере">`;
     } else if (data.msgType === 'file') {
         contentHtml = `
             <div class="file-card">

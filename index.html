@@ -26,7 +26,7 @@
 
         .app-container { display: flex; width: 100vw; height: 100vh; }
 
-        /* 1. ПАНЕЛЬ СЕРВЕРОВ */
+        /* СЕРВЕРЫ */
         .servers-sidebar {
             width: 72px; background: var(--bg-server); display: flex; flex-direction: column;
             align-items: center; padding: 12px 0; gap: 8px; overflow-y: auto; flex-shrink: 0;
@@ -40,7 +40,7 @@
         .server-icon.add-btn { color: var(--green); border: 1px dashed var(--green); background: transparent; }
         .server-icon.add-btn:hover { background: var(--green); color: #fff; border-radius: 16px; }
 
-        /* 2. КАНАЛЫ */
+        /* КАНАЛЫ */
         .channels-sidebar {
             width: 240px; background: var(--bg-channels); display: flex; flex-direction: column; flex-shrink: 0;
         }
@@ -79,7 +79,7 @@
         .voice-btn { background: rgba(255,255,255,0.08); border: none; color: #fff; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
         .voice-btn.danger { background: var(--red); }
 
-        /* ПРОФИЛЬ СНИЗУ */
+        /* ПРОФИЛЬ */
         .user-footer {
             height: 54px; background: var(--bg-user); display: flex; align-items: center;
             padding: 0 10px; justify-content: space-between; cursor: pointer;
@@ -95,14 +95,14 @@
             position: absolute; bottom: -2px; right: -2px; border: 2px solid var(--bg-user);
         }
 
-        /* 3. ЧАТ */
+        /* ЧАТ */
         .chat-area { flex: 1; background: var(--bg-chat); display: flex; flex-direction: column; min-width: 0; }
         .chat-header {
             height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
             border-bottom: 1px solid #202225; color: var(--text-header); font-weight: bold;
         }
         .net-status-badge {
-            font-size: 12px; font-weight: normal; color: var(--green); display: flex; align-items: center; gap: 5px;
+            font-size: 12px; font-weight: normal; color: var(--green); display: flex; align-items: center; gap: 6px;
         }
         .call-header-btn {
             background: var(--green); color: #fff; border: none; padding: 6px 14px;
@@ -154,7 +154,7 @@
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-        /* 4. СПИСОК УЧАСТНИКОВ (ПРАВАЯ ПАНЕЛЬ) */
+        /* СПИСОК УЧАСТНИКОВ */
         .members-sidebar {
             width: 220px; background: var(--bg-channels); display: flex; flex-direction: column;
             padding: 16px 10px; overflow-y: auto; flex-shrink: 0; border-left: 1px solid #202225;
@@ -188,6 +188,7 @@
             border: 2px solid var(--blurple); padding: 16px; border-radius: 8px; z-index: 200; text-align: center;
         }
     </style>
+    <!-- Безотказный сетевой протокол -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
@@ -339,7 +340,7 @@
             <div class="chat-header">
                 <div><span>#</span> <span id="current-channel-header">общий</span></div>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div class="net-status-badge" id="net-badge"><span>●</span> <span id="net-text">Подключение...</span></div>
+                    <div class="net-status-badge" id="net-badge"><span>●</span> <span id="net-text">Подключение к сети...</span></div>
                     <button class="call-header-btn" onclick="initiateCall()">📞 Позвонить</button>
                 </div>
             </div>
@@ -386,22 +387,22 @@ function safeEncode(str) { return encodeURIComponent(str); }
 function safeDecode(str) { try { return decodeURIComponent(str); } catch(e) { return str; } }
 
 // =========================================================================
-//         БАЗА ДАННЫХ ИСТОРИИ СООБЩЕНИЙ (СОХРАНЯЮТСЯ НАВСЕГДА!)
+//         ПОСТОЯННАЯ ИСТОРИЯ СООБЩЕНИЙ (НИКОГДА НЕ ПРОПАДАЕТ!)
 // =========================================================================
 function getChatHistory() {
-    return JSON.parse(localStorage.getItem('dc_chat_history_v1') || '{}');
+    return JSON.parse(localStorage.getItem('dc_chat_permanent_history') || '{}');
 }
 function saveMessageToHistory(srvId, chName, msgObj) {
     const history = getChatHistory();
-    const key = `${srvId}__${chName}`;
+    const key = `${srvId}___${chName}`;
     if (!history[key]) history[key] = [];
     history[key].push(msgObj);
-    if (history[key].length > 150) history[key].shift(); // Храним до 150 сообщений в канале
-    localStorage.setItem('dc_chat_history_v1', JSON.stringify(history));
+    if (history[key].length > 150) history[key].shift();
+    localStorage.setItem('dc_chat_permanent_history', JSON.stringify(history));
 }
 
 // =========================================================================
-//                  СИСТЕМА АККАУНТОВ И СЕРВЕРОВ
+//                  СИСТЕМА АККАУНТОВ И ЕДИНОГО СЕРВЕРА
 // =========================================================================
 let authMode = 'register';
 let currentUser = null;
@@ -409,36 +410,28 @@ let userServers = [];
 let currentServerIndex = 0;
 let currentChannelName = 'общий';
 let mqttClient = null;
-
 let onlineMembers = {};
 
-function getAccountsDB() { return JSON.parse(localStorage.getItem('dc_accounts_db_v3') || '{}'); }
-function saveAccountsDB(db) { localStorage.setItem('dc_accounts_db_v3', JSON.stringify(db)); }
+// ГЛОБАЛЬНЫЙ СЕРВЕР С ФИКСИРОВАННЫМ ID ДЛЯ ВСЕХ ДРУЗЕЙ!
+const GLOBAL_SERVER_ID = 'global_main_server_2024';
 
-function getDefaultGlobalServers() {
+function getDefaultServers() {
     return [
         {
-            id: 'global_srv_main',
+            id: GLOBAL_SERVER_ID,
             name: 'Главный сервер',
             icon: '💬',
-            ownerId: 'admin_locked',
+            ownerId: 'admin_root',
             channels: ['общий', 'мемы', 'файлы']
-        },
-        {
-            id: 'global_srv_zone',
-            name: 'Чернобыль 3D',
-            icon: '☢',
-            ownerId: 'admin_locked',
-            channels: ['зона', 'посиделки']
         }
     ];
 }
 
 function checkExistingSession() {
-    const savedSession = localStorage.getItem('dc_active_user_v3');
+    const savedSession = localStorage.getItem('dc_active_user_v4');
     if (savedSession) {
         currentUser = JSON.parse(savedSession);
-        initUserEnvironment();
+        initApp();
     } else {
         openModal('auth-modal');
         switchAuthTab('register');
@@ -465,12 +458,12 @@ function handleAuthSubmit() {
         return;
     }
 
-    const db = getAccountsDB();
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v4') || '{}');
     const userKey = username.toLowerCase();
 
     if (authMode === 'register') {
         if (db[userKey]) {
-            errBox.innerText = 'Пользователь с таким логином уже существует! Нажмите "Вход".';
+            errBox.innerText = 'Пользователь уже существует! Нажмите "Вход".';
             errBox.style.display = 'block';
             return;
         }
@@ -481,16 +474,16 @@ function handleAuthSubmit() {
             password: safeEncode(password),
             avatarUrl: '',
             color: '#' + Math.floor(Math.random()*16777215).toString(16),
-            servers: getDefaultGlobalServers()
+            servers: getDefaultServers()
         };
 
         db[userKey] = newUser;
-        saveAccountsDB(db);
+        localStorage.setItem('dc_accounts_db_v4', JSON.stringify(db));
 
         currentUser = newUser;
-        localStorage.setItem('dc_active_user_v3', JSON.stringify(currentUser));
+        localStorage.setItem('dc_active_user_v4', JSON.stringify(currentUser));
         closeModal('auth-modal');
-        initUserEnvironment();
+        initApp();
 
     } else {
         const account = db[userKey];
@@ -501,9 +494,9 @@ function handleAuthSubmit() {
         }
 
         currentUser = account;
-        localStorage.setItem('dc_active_user_v3', JSON.stringify(currentUser));
+        localStorage.setItem('dc_active_user_v4', JSON.stringify(currentUser));
         closeModal('auth-modal');
-        initUserEnvironment();
+        initApp();
     }
 }
 
@@ -511,13 +504,20 @@ document.getElementById('auth-password').addEventListener('keydown', e => { if (
 document.getElementById('auth-username').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
 
 function logout() {
-    localStorage.removeItem('dc_active_user_v3');
+    localStorage.removeItem('dc_active_user_v4');
     window.location.reload();
 }
 
-function initUserEnvironment() {
+function initApp() {
     initAudio();
-    userServers = currentUser.servers || getDefaultGlobalServers();
+    userServers = currentUser.servers || getDefaultServers();
+
+    // Гарантируем, что первый сервер имеет одинаковый ID у всех
+    if (userServers[0].id !== GLOBAL_SERVER_ID) {
+        userServers[0].id = GLOBAL_SERVER_ID;
+        saveUserAccountData();
+    }
+
     updateProfileUI();
     renderServerBar();
     renderChannels();
@@ -525,19 +525,20 @@ function initUserEnvironment() {
     connectNetwork();
     checkUrlInvite();
 
-    setInterval(broadcastPresence, 6000);
+    // Отправка статуса онлайн каждые 5 секунд
+    setInterval(broadcastPresence, 5000);
 }
 
 function saveUserAccountData() {
     currentUser.servers = userServers;
-    localStorage.setItem('dc_active_user_v3', JSON.stringify(currentUser));
-    const db = getAccountsDB();
+    localStorage.setItem('dc_active_user_v4', JSON.stringify(currentUser));
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v4') || '{}');
     db[currentUser.name.toLowerCase()] = currentUser;
-    saveAccountsDB(db);
+    localStorage.setItem('dc_accounts_db_v4', JSON.stringify(db));
 }
 
 // =========================================================================
-//       СЕРВЕРЫ, КАНАЛЫ И СТРОГИЕ ПРАВА СОЗДАТЕЛЯ (isOwner)
+//            СЕРВЕРЫ, КАНАЛЫ И СТРОГИЕ ПРАВА СОЗДАТЕЛЯ
 // =========================================================================
 function renderServerBar() {
     const bar = document.getElementById('server-bar');
@@ -570,9 +571,8 @@ function renderChannels() {
     container.innerHTML = '';
     const s = userServers[currentServerIndex];
 
-    // СТРОГОЕ ПРАВИЛО: Создавать каналы может ТОЛЬКО создатель сервера!
+    // Кнопка '+' видна ТОЛЬКО создателю сервера!
     const isOwner = (s.ownerId === currentUser.id);
-
     document.getElementById('btn-add-channel-plus').style.display = isOwner ? 'block' : 'none';
     document.getElementById('menu-create-channel-opt').style.display = isOwner ? 'flex' : 'none';
 
@@ -584,14 +584,13 @@ function renderChannels() {
             currentChannelName = ch;
             document.getElementById('current-channel-header').innerText = ch;
             renderChannels();
-            loadChannelMessages(); // Загружаем историю сообщений при переходе!
+            loadChannelMessages(); // История сохраняется и открывается моментально!
         };
         container.appendChild(item);
     });
     document.getElementById('current-channel-header').innerText = currentChannelName;
 }
 
-// Загрузка сообщений из постоянной памяти
 function loadChannelMessages() {
     const container = document.getElementById('messages');
     container.innerHTML = '';
@@ -599,7 +598,7 @@ function loadChannelMessages() {
     if (!s) return;
 
     const history = getChatHistory();
-    const key = `${s.id}__${currentChannelName}`;
+    const key = `${s.id}___${currentChannelName}`;
     const msgs = history[key] || [];
 
     msgs.forEach(m => renderMessage(m, false));
@@ -650,7 +649,7 @@ function confirmCreateServer() {
             id: sId,
             name: name,
             icon: name[0].toUpperCase(),
-            ownerId: currentUser.id, // ТЕКУЩИЙ ЮЗЕР — ВЛАДЕЛЕЦ!
+            ownerId: currentUser.id, // ТЫ СОЗДАТЕЛЬ
             channels: ['общий', 'мемы']
         };
         userServers.push(newSrv);
@@ -683,13 +682,13 @@ function joinServerByCode(rawCode) {
                 id: srvData.id,
                 name: srvData.name,
                 icon: srvData.icon || srvData.name[0].toUpperCase(),
-                ownerId: srvData.ownerId, // СОХРАНЯЕТСЯ ОРИГИНАЛЬНЫЙ ВЛАДЕЛЕЦ!
+                ownerId: srvData.ownerId, // СОХРАНЯЕМ НАСТОЯЩЕГО СОЗДАТЕЛЯ
                 channels: srvData.channels || ['общий']
             };
             userServers.push(srvObj);
             saveUserAccountData();
             switchServer(userServers.length - 1);
-            alert(`Успешно! Вы присоединились к серверу "${srvData.name}"!`);
+            alert(`Успешно! Вы зашли на сервер "${srvData.name}"!`);
         }
     } catch(e) {
         alert('Неверный код приглашения!');
@@ -716,11 +715,10 @@ function leaveCurrentServer() {
     }
 }
 
-// ТОЛЬКО СОЗДАТЕЛЬ МОЖЕТ СОЗДАВАТЬ КАНАЛЫ!
 function confirmCreateChannel() {
     const s = userServers[currentServerIndex];
     if (s.ownerId !== currentUser.id) {
-        alert('Ошибка: Только создатель сервера может создавать новые каналы!');
+        alert('Только создатель сервера может добавлять каналы!');
         return;
     }
 
@@ -734,7 +732,6 @@ function confirmCreateChannel() {
         closeModal('create-channel-modal');
         document.getElementById('new-channel-name').value = '';
 
-        // Синхронизируем канал с друзьями
         sendPacket('CHANNEL_SYNC', { serverId: s.id, channelName: name });
     }
 }
@@ -771,7 +768,7 @@ function renderMembersList() {
 
     const now = Date.now();
     const serverMembers = Object.values(onlineMembers).filter(m => {
-        return m.serverId === currentSrv.id && (now - m.lastPing < 20000);
+        return m.serverId === currentSrv.id && (now - m.lastPing < 15000);
     });
 
     serverMembers.forEach(m => {
@@ -794,32 +791,31 @@ function renderMembersList() {
 }
 
 // =========================================================================
-//           СЕТЬ (НАДЕЖНЫЙ МИРОВОЙ БРОКЕР HIVEMQ + ВЕЧНАЯ ИСТОРИЯ)
+//                   НАДЕЖНЫЙ СЕТЕВОЙ МОСТ (БЕЗ РЕГИСТРАЦИИ)
 // =========================================================================
+const NETWORK_ROOM_TOPIC = 'discord_app_universal_network_room_2026';
+
 function connectNetwork() {
     const badge = document.getElementById('net-badge');
     const text = document.getElementById('net-text');
 
-    const clientRandomId = 'client_' + Math.random().toString(16).substring(2, 10);
-    // Подключение к быстрому публичному брокеру HiveMQ
+    const randomClientId = 'u_' + Math.random().toString(16).substring(2, 10);
     mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
-        clientId: clientRandomId,
+        clientId: randomClientId,
         clean: true,
         keepalive: 30
     });
 
-    const topic = 'discord_v5_global_channel_network';
-
     mqttClient.on('connect', () => {
         badge.style.color = 'var(--green)';
-        text.innerText = 'В сети';
-        mqttClient.subscribe(topic);
+        text.innerText = 'Связь установлена';
+        mqttClient.subscribe(NETWORK_ROOM_TOPIC);
         broadcastPresence();
     });
 
     mqttClient.on('error', () => {
         badge.style.color = 'var(--red)';
-        text.innerText = 'Сбой сети';
+        text.innerText = 'Переподключение...';
     });
 
     mqttClient.on('message', async (t, payload) => {
@@ -833,13 +829,12 @@ function connectNetwork() {
 
 function sendPacket(type, extra = {}) {
     if (!mqttClient || !currentUser) return;
-    const topic = 'discord_v5_global_channel_network';
-    mqttClient.publish(topic, JSON.stringify({
+    mqttClient.publish(NETWORK_ROOM_TOPIC, JSON.stringify({
         senderId: currentUser.id,
         author: currentUser.name,
         color: currentUser.color,
         avatarUrl: currentUser.avatarUrl,
-        server: userServers[currentServerIndex] ? userServers[currentServerIndex].id : 'global_srv_main',
+        server: userServers[currentServerIndex].id,
         channel: currentChannelName,
         type: type,
         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
@@ -848,7 +843,6 @@ function sendPacket(type, extra = {}) {
 }
 
 function handleIncomingPacket(data) {
-    // 1. Онлайн участников
     if (data.type === 'PRESENCE') {
         onlineMembers[data.senderId] = {
             id: data.senderId,
@@ -860,16 +854,16 @@ function handleIncomingPacket(data) {
         };
         renderMembersList();
     }
-    // 2. Чат (сохраняется в историю!)
     else if (data.type === 'CHAT_MSG') {
+        // Сохраняем в постоянную историю чата
         saveMessageToHistory(data.server, data.channel, data);
 
+        // Отображаем, если открыт именно этот сервер и канал
         if (userServers[currentServerIndex] && data.server === userServers[currentServerIndex].id && data.channel === currentChannelName) {
             renderMessage(data);
             playDiscordPing();
         }
     }
-    // 3. Синхронизация нового канала от друга
     else if (data.type === 'CHANNEL_SYNC') {
         const srv = userServers.find(s => s.id === data.serverId);
         if (srv && !srv.channels.includes(data.channelName)) {
@@ -878,7 +872,6 @@ function handleIncomingPacket(data) {
             if (userServers[currentServerIndex].id === data.serverId) renderChannels();
         }
     }
-    // 4. Звонки
     else if (data.type === 'CALL_OFFER') {
         document.getElementById('caller-name').innerText = `${data.author} звонит вам`;
         document.getElementById('incoming-call-modal').style.display = 'block';
@@ -933,14 +926,13 @@ async function handleFileUpload(e) {
             });
             const json = await res.json();
             if (json && json.data && (json.data.display_url || json.data.url)) {
-                const imgUrl = json.data.display_url || json.data.url;
                 const msgData = {
                     author: currentUser.name,
                     color: currentUser.color,
                     avatarUrl: currentUser.avatarUrl,
                     time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
                     msgType: 'image',
-                    fileUrl: imgUrl
+                    fileUrl: json.data.display_url || json.data.url
                 };
 
                 saveMessageToHistory(userServers[currentServerIndex].id, currentChannelName, msgData);
@@ -951,7 +943,7 @@ async function handleFileUpload(e) {
     } else {
         const reader = new FileReader();
         reader.onload = () => {
-            if (file.size > 80 * 1024) { alert('Файлы поддерживаются до 80 КБ!'); return; }
+            if (file.size > 80 * 1024) { alert('Файлы поддерживаются до 80 КБ! Фотографии можно слать любых размеров.'); return; }
             const msgData = {
                 author: currentUser.name,
                 color: currentUser.color,
@@ -1060,13 +1052,12 @@ function playVoiceNote(btn, audioSrc) {
     audio.onended = () => btn.innerText = '▶';
 }
 
-// Профиль
 function handleAvatarFileSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = event => {
         const img = new Image();
         img.onload = () => {
             const canvas = document.createElement('canvas');

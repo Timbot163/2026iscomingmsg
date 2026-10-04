@@ -37,6 +37,8 @@
             font-size: 16px; cursor: pointer; transition: all 0.2s; color: #fff; position: relative;
         }
         .server-icon:hover, .server-icon.active { border-radius: 16px; background: var(--blurple); }
+        .server-icon.add-btn { color: var(--green); border: 1px dashed var(--green); background: transparent; }
+        .server-icon.add-btn:hover { background: var(--green); color: #fff; border-radius: 16px; }
 
         /* 2. КАНАЛЫ */
         .channels-sidebar {
@@ -44,10 +46,12 @@
         }
         .server-header {
             height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
-            font-weight: bold; color: var(--text-header); border-bottom: 1px solid #1f2023;
+            font-weight: bold; color: var(--text-header); border-bottom: 1px solid #1f2023; cursor: pointer; position: relative;
         }
+        .server-header:hover { background: rgba(255,255,255,0.03); }
         .channels-list { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
         .category-header {
+            display: flex; justify-content: space-between; align-items: center;
             font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase; padding: 6px;
         }
         .channel-item {
@@ -55,6 +59,17 @@
             color: var(--text-muted); cursor: pointer; font-size: 14px;
         }
         .channel-item:hover, .channel-item.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
+
+        /* ВЫПАДАЮЩЕЕ МЕНЮ СЕРВЕРА */
+        .dropdown-menu {
+            position: absolute; top: 48px; left: 10px; width: 220px; background: #111214;
+            border-radius: 6px; padding: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 80; display: none; flex-direction: column; gap: 2px;
+        }
+        .dropdown-item {
+            padding: 8px 10px; border-radius: 4px; font-size: 13px; color: var(--text-normal); cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+        }
+        .dropdown-item:hover { background: var(--blurple); color: #fff; }
+        .dropdown-item.danger:hover { background: var(--red); color: #fff; }
 
         /* ГОЛОСОВОЙ БЛОК */
         #voice-panel {
@@ -149,11 +164,12 @@
         }
         .member-item:hover { background: rgba(255,255,255,0.05); }
         .member-name { font-size: 14px; color: var(--text-normal); font-weight: 500; display: flex; align-items: center; gap: 6px; }
+        .owner-crown { color: #f1c40f; font-size: 14px; }
 
         /* МОДАЛКИ */
         .modal-overlay {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100;
+            background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 100;
         }
         .modal-box {
             background: var(--bg-channels); padding: 24px; border-radius: 8px; width: 360px; text-align: center; color: #fff;
@@ -163,13 +179,15 @@
             width: 100%; padding: 11px; margin: 8px 0; background: var(--bg-input); border: 1px solid #444; color: #fff; border-radius: 4px; outline: none; font-size: 14px;
         }
         .modal-box input:focus { border-color: var(--blurple); }
+        .modal-tabs { display: flex; border-bottom: 1px solid #444; margin-bottom: 12px; }
+        .modal-tab { flex: 1; padding: 8px; cursor: pointer; color: var(--text-muted); font-weight: bold; }
+        .modal-tab.active { color: var(--text-header); border-bottom: 2px solid var(--blurple); }
 
         #incoming-call-modal {
             display: none; position: absolute; top: 20px; right: 20px; background: var(--bg-channels);
             border: 2px solid var(--blurple); padding: 16px; border-radius: 8px; z-index: 200; text-align: center;
         }
     </style>
-    <!-- Бесплатный облачный WebSocket-клиент -->
     <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 </head>
 <body>
@@ -178,23 +196,86 @@
     <input type="file" id="file-uploader" style="display: none;" onchange="handleFileUpload(event)">
     <input type="file" id="avatar-uploader" accept="image/*" style="display: none;" onchange="handleAvatarFileSelect(event)">
 
-    <!-- 1. МОДАЛКА ВХОДА И ПОДКЛЮЧЕНИЯ К ДРУГУ -->
-    <div id="login-modal" class="modal-overlay">
+    <!-- 1. МОДАЛКА АВТОРИЗАЦИИ (ВХОД И РЕГИСТРАЦИЯ) -->
+    <div id="auth-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box">
-            <h2 style="margin-bottom: 6px;">Вход в Discord</h2>
-            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Введите ваш ник и общий код комнаты с другом:</p>
+            <h2 style="margin-bottom: 6px;">Discord Web</h2>
+            <div class="modal-tabs">
+                <div class="modal-tab" id="tab-login" onclick="switchAuthTab('login')">Вход</div>
+                <div class="modal-tab active" id="tab-register" onclick="switchAuthTab('register')">Регистрация</div>
+            </div>
 
-            <input type="text" id="user-name-input" placeholder="Ваш никнейм">
-            <input type="text" id="room-code-input" placeholder="Код комнаты (одинаковый с другом!)" value="сталкеры">
+            <input type="text" id="auth-username" placeholder="Ваш никнейм">
+            <input type="password" id="auth-password" placeholder="Придумайте пароль">
+            <input type="text" id="auth-roomcode" placeholder="Код комнаты с другом" value="сталкеры">
 
-            <button class="call-header-btn" style="width: 100%; justify-content: center; margin-top: 10px; padding: 11px;" onclick="enterChat()">
-                ПОДКЛЮЧИТЬСЯ
+            <button class="call-header-btn" id="btn-auth-submit" style="width: 100%; justify-content: center; margin-top: 10px; padding: 11px;" onclick="handleAuthSubmit()">
+                ЗАРЕГИСТРИРОВАТЬСЯ
             </button>
+            <p id="auth-error" style="color: var(--red); font-size: 13px; margin-top: 10px; display: none;"></p>
         </div>
     </div>
 
-    <!-- 2. МОДАЛКА ПРОФИЛЯ -->
-    <div id="profile-modal" class="modal-overlay" style="display: none;">
+    <!-- 2. МОДАЛКА СЕРВЕРОВ (СОЗДАНИЕ / ИНВАЙТ) -->
+    <div id="add-server-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-tabs">
+                <div class="modal-tab active" id="tab-srv-create" onclick="switchServerModalTab('create')">Создать сервер</div>
+                <div class="modal-tab" id="tab-srv-join" onclick="switchServerModalTab('join')">По приглашению</div>
+            </div>
+
+            <div id="panel-srv-create">
+                <input type="text" id="new-server-name" placeholder="Название сервера">
+                <button class="call-header-btn" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="confirmCreateServer()">Создать</button>
+            </div>
+
+            <div id="panel-srv-join" style="display: none;">
+                <input type="text" id="join-invite-input" placeholder="Вставьте код или ссылку приглашения">
+                <button class="call-header-btn" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="confirmJoinByInvite()">Присоединиться</button>
+            </div>
+
+            <button class="voice-btn" style="width: 100%; margin-top: 10px;" onclick="closeModal('add-server-modal')">Отмена</button>
+        </div>
+    </div>
+
+    <!-- 3. МОДАЛКА ИНВАЙТА -->
+    <div id="invite-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Пригласить друзей</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Отправьте эту ссылку другу, чтобы он зашел на сервер:</p>
+            <input type="text" id="invite-link-display" readonly>
+            <button class="call-header-btn" id="btn-copy-invite" style="width: 100%; justify-content: center;" onclick="copyInviteLink()">📋 Скопировать ссылку</button>
+            <button class="voice-btn" style="width: 100%; margin-top: 8px;" onclick="closeModal('invite-modal')">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- 4. МОДАЛКА СОЗДАНИЯ КАНАЛА -->
+    <div id="create-channel-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Новый канал</h3>
+            <input type="text" id="new-channel-name" placeholder="название-канала">
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button class="call-header-btn" style="flex:1; justify-content:center;" onclick="confirmCreateChannel()">Создать</button>
+                <button class="voice-btn" style="flex:1;" onclick="closeModal('create-channel-modal')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. МОДАЛКА НАСТРОЕК СЕРВЕРА (ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА) -->
+    <div id="server-settings-modal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Настройки сервера</h3>
+            <input type="text" id="edit-server-name-input" placeholder="Новое название">
+            <div style="display:flex; gap:8px; margin-top:10px;">
+                <button class="call-header-btn" style="flex:1; justify-content:center;" onclick="saveServerSettings()">Сохранить</button>
+                <button class="voice-btn danger" style="flex:1;" onclick="deleteCurrentServer()">Удалить сервер</button>
+            </div>
+            <button class="voice-btn" style="width: 100%; margin-top: 8px;" onclick="closeModal('server-settings-modal')">Отмена</button>
+        </div>
+    </div>
+
+    <!-- 6. МОДАЛКА ПРОФИЛЯ -->
+    <div id="profile-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>Настройки профиля</h3>
             <div style="margin: 10px 0; display:flex; flex-direction:column; align-items:center;">
@@ -205,7 +286,7 @@
             <input type="text" id="edit-profile-name" placeholder="Ваш никнейм">
             <div style="display:flex; gap:8px; margin-top:10px;">
                 <button class="call-header-btn" style="flex:1; justify-content:center;" onclick="saveProfile()">Сохранить</button>
-                <button class="voice-btn danger" style="flex:1;" onclick="switchUser()">Сменить комнату</button>
+                <button class="voice-btn danger" style="flex:1;" onclick="logout()">Выйти</button>
             </div>
             <button class="voice-btn" style="width: 100%; margin-top: 8px;" onclick="closeModal('profile-modal')">Закрыть</button>
         </div>
@@ -224,30 +305,30 @@
     <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
     <div class="app-container">
         <!-- 1. СЕРВЕРЫ -->
-        <div class="servers-sidebar">
-            <div class="server-icon active" title="Discord">💬</div>
-            <div class="server-icon" style="background:#2e4428;">☢</div>
-            <div class="server-icon" style="background:#e67e22;">🎮</div>
+        <div class="servers-sidebar" id="server-bar">
+            <div class="server-icon add-btn" title="Создать сервер или войти по приглашению" onclick="openModal('add-server-modal')">+</div>
         </div>
 
         <!-- 2. КАНАЛЫ -->
         <div class="channels-sidebar">
-            <div class="server-header">
-                <span id="current-server-title">Сервер: Общий</span>
-                <span style="font-size: 11px; color: var(--green);">●</span>
+            <div class="server-header" onclick="toggleServerDropdown()">
+                <span id="current-server-title">Главный сервер</span>
+                <span style="font-size: 12px;">▼</span>
+            </div>
+
+            <div class="dropdown-menu" id="server-dropdown">
+                <div class="dropdown-item" onclick="openInviteModal()"><span>👥 Пригласить людей</span> <span>+</span></div>
+                <div class="dropdown-item" id="menu-create-channel-opt" onclick="openModal('create-channel-modal')"><span>➕ Создать канал</span></div>
+                <div class="dropdown-item" id="menu-server-settings-opt" onclick="openServerSettingsModal()"><span>⚙ Настройки сервера</span></div>
+                <div class="dropdown-item danger" onclick="leaveCurrentServer()"><span>🚪 Покинуть сервер</span></div>
             </div>
 
             <div class="channels-list">
-                <div class="category-header">Текстовые каналы</div>
-                <div class="channel-item active" onclick="switchChannel('общий', this)">
-                    <span>#</span> <span>общий</span>
+                <div class="category-header">
+                    <span>Текстовые каналы</span>
+                    <span id="btn-add-channel-plus" style="cursor: pointer; font-size: 14px; display: none;" onclick="openModal('create-channel-modal')" title="Создать канал">+</span>
                 </div>
-                <div class="channel-item" onclick="switchChannel('мемы', this)">
-                    <span>#</span> <span>мемы</span>
-                </div>
-                <div class="channel-item" onclick="switchChannel('файлы', this)">
-                    <span>#</span> <span>файлы</span>
-                </div>
+                <div id="channel-items-container"></div>
             </div>
 
             <div id="voice-panel">
@@ -318,89 +399,463 @@ function playDiscordPing() {
     osc.start(); osc.stop(audioCtx.currentTime + 0.3);
 }
 
-// --- СОСТОЯНИЕ И БАЗА СООБЩЕНИЙ ---
-let currentUser = {
-    id: 'u_' + Math.random().toString(36).substring(7),
-    name: 'Сталкер_' + Math.floor(Math.random() * 900 + 100),
-    avatarUrl: '',
-    color: '#' + Math.floor(Math.random()*16777215).toString(16)
-};
+function safeEncode(str) { return encodeURIComponent(str); }
+function safeDecode(str) { try { return decodeURIComponent(str); } catch(e) { return str; } }
 
-let currentRoom = 'сталкеры';
-let currentChannelName = 'общий';
-let mqttClient = null;
-let onlineMembers = {};
-
-// Сохранение и загрузка сообщений из постоянной памяти
-function getRoomHistory() {
-    return JSON.parse(localStorage.getItem('dc_room_history_' + currentRoom) || '{}');
+// =========================================================================
+//            БАЗА ДАННЫХ ИСТОРИИ ЧАТА (СООБЩЕНИЯ НЕ ТЕРЯЮТСЯ!)
+// =========================================================================
+function getChatHistory() {
+    return JSON.parse(localStorage.getItem('dc_v5_chat_history') || '{}');
 }
-function saveMessage(chName, msgObj) {
-    const history = getRoomHistory();
-    if (!history[chName]) history[chName] = [];
-    history[chName].push(msgObj);
-    if (history[chName].length > 150) history[chName].shift();
-    localStorage.setItem('dc_room_history_' + currentRoom, JSON.stringify(history));
+function saveMessage(srvId, chName, msgObj) {
+    const history = getChatHistory();
+    const key = `${srvId}___${chName}`;
+    if (!history[key]) history[key] = [];
+    history[key].push(msgObj);
+    if (history[key].length > 150) history[key].shift();
+    localStorage.setItem('dc_v5_chat_history', JSON.stringify(history));
 }
-
 function loadChannelMessages() {
     const container = document.getElementById('messages');
     container.innerHTML = '';
-    const history = getRoomHistory();
-    const msgs = history[currentChannelName] || [];
+    const s = userServers[currentServerIndex];
+    if (!s) return;
+
+    const history = getChatHistory();
+    const key = `${s.id}___${currentChannelName}`;
+    const msgs = history[key] || [];
     msgs.forEach(m => renderMessage(m, false));
     container.scrollTop = container.scrollHeight;
 }
 
 // =========================================================================
-//            ВХОД В ЧАТ И ПОДКЛЮЧЕНИЕ К ДРУГУ
+//            СИСТЕМА АККАУНТОВ И АВТОРИЗАЦИИ
 // =========================================================================
-const savedUser = localStorage.getItem('dc_saved_user_profile');
-if (savedUser) {
-    currentUser = JSON.parse(savedUser);
-    document.getElementById('user-name-input').value = currentUser.name;
-} else {
-    document.getElementById('user-name-input').value = currentUser.name;
+let authMode = 'register';
+let currentUser = null;
+let currentRoom = 'сталкеры';
+let userServers = [];
+let currentServerIndex = 0;
+let currentChannelName = 'общий';
+let mqttClient = null;
+let onlineMembers = {};
+
+const GLOBAL_MAIN_SRV_ID = 'global_main_server_2026';
+const GLOBAL_ZONE_SRV_ID = 'global_zone_server_2026';
+
+function getDefaultServers() {
+    return [
+        {
+            id: GLOBAL_MAIN_SRV_ID,
+            name: 'Главный сервер',
+            icon: '💬',
+            ownerId: 'admin_root',
+            channels: ['общий', 'мемы', 'файлы']
+        },
+        {
+            id: GLOBAL_ZONE_SRV_ID,
+            name: 'Чернобыль 3D',
+            icon: '☢',
+            ownerId: 'admin_root',
+            channels: ['зона', 'посиделки']
+        }
+    ];
 }
 
-const savedRoom = localStorage.getItem('dc_saved_room');
-if (savedRoom) {
-    document.getElementById('room-code-input').value = savedRoom;
+function checkExistingSession() {
+    const saved = localStorage.getItem('dc_active_user_v5');
+    if (saved) {
+        currentUser = JSON.parse(saved);
+        currentRoom = localStorage.getItem('dc_room_code_v5') || 'сталкеры';
+        initApp();
+    } else {
+        openModal('auth-modal');
+        switchAuthTab('register');
+    }
 }
 
-function enterChat() {
+function switchAuthTab(mode) {
+    authMode = mode;
+    document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+    document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+    document.getElementById('btn-auth-submit').innerText = mode === 'login' ? 'ВОЙТИ' : 'ЗАРЕГИСТРИРОВАТЬСЯ';
+    document.getElementById('auth-password').placeholder = mode === 'login' ? 'Ваш пароль' : 'Придумайте пароль';
+    document.getElementById('auth-error').style.display = 'none';
+}
+
+function handleAuthSubmit() {
+    const username = document.getElementById('auth-username').value.trim();
+    const password = document.getElementById('auth-password').value.trim();
+    const roomCode = document.getElementById('auth-roomcode').value.trim().toLowerCase() || 'сталкеры';
+    const errBox = document.getElementById('auth-error');
+
+    if (!username || !password) {
+        errBox.innerText = 'Заполните никнейм и пароль!';
+        errBox.style.display = 'block';
+        return;
+    }
+
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v5') || '{}');
+    const userKey = username.toLowerCase();
+
+    if (authMode === 'register') {
+        if (db[userKey]) {
+            errBox.innerText = 'Пользователь уже существует! Нажмите "Вход".';
+            errBox.style.display = 'block';
+            return;
+        }
+
+        const newUser = {
+            id: 'u_' + Math.random().toString(36).substring(7),
+            name: username,
+            password: safeEncode(password),
+            avatarUrl: '',
+            color: '#' + Math.floor(Math.random()*16777215).toString(16),
+            servers: getDefaultServers()
+        };
+
+        db[userKey] = newUser;
+        localStorage.setItem('dc_accounts_db_v5', JSON.stringify(db));
+
+        currentUser = newUser;
+        currentRoom = roomCode;
+        localStorage.setItem('dc_active_user_v5', JSON.stringify(currentUser));
+        localStorage.setItem('dc_room_code_v5', currentRoom);
+
+        closeModal('auth-modal');
+        initApp();
+
+    } else {
+        const account = db[userKey];
+        if (!account || account.password !== safeEncode(password)) {
+            errBox.innerText = 'Неверный логин или пароль!';
+            errBox.style.display = 'block';
+            return;
+        }
+
+        currentUser = account;
+        currentRoom = roomCode;
+        localStorage.setItem('dc_active_user_v5', JSON.stringify(currentUser));
+        localStorage.setItem('dc_room_code_v5', currentRoom);
+
+        closeModal('auth-modal');
+        initApp();
+    }
+}
+
+document.getElementById('auth-password').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
+document.getElementById('auth-username').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
+
+function logout() {
+    localStorage.removeItem('dc_active_user_v5');
+    window.location.reload();
+}
+
+function initApp() {
     initAudio();
-    const nameVal = document.getElementById('user-name-input').value.trim();
-    const roomVal = document.getElementById('room-code-input').value.trim().toLowerCase();
+    userServers = currentUser.servers || getDefaultServers();
 
-    if (nameVal) currentUser.name = nameVal;
-    if (roomVal) currentRoom = roomVal;
-
-    localStorage.setItem('dc_saved_user_profile', JSON.stringify(currentUser));
-    localStorage.setItem('dc_saved_room', currentRoom);
-
-    closeModal('login-modal');
     updateProfileUI();
-    document.getElementById('current-server-title').innerText = `Комната: ${currentRoom}`;
+    renderServerBar();
+    renderChannels();
     loadChannelMessages();
-    connectOnlineNetwork();
+    connectNetwork();
+    checkUrlInvite();
 
-    setInterval(broadcastPresence, 4000);
+    setInterval(broadcastPresence, 4500);
 }
 
-function switchUser() {
-    closeModal('profile-modal');
-    openModal('login-modal');
+function saveUserAccountData() {
+    currentUser.servers = userServers;
+    localStorage.setItem('dc_active_user_v5', JSON.stringify(currentUser));
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v5') || '{}');
+    db[currentUser.name.toLowerCase()] = currentUser;
+    localStorage.setItem('dc_accounts_db_v5', JSON.stringify(db));
 }
 
 // =========================================================================
-//         БЕЗОТКАЗНЫЙ СЕТЕВОЙ МОСТ (БЕЗ РЕГИСТРАЦИИ И FIREBASE)
+//         СЕРВЕРЫ, КАНАЛЫ И СТРОГИЕ ПРАВА СОЗДАТЕЛЯ (👑)
 // =========================================================================
-function connectOnlineNetwork() {
+function renderServerBar() {
+    const bar = document.getElementById('server-bar');
+    bar.querySelectorAll('.server-item').forEach(e => e.remove());
+
+    userServers.forEach((s, idx) => {
+        const icon = document.createElement('div');
+        icon.className = `server-icon server-item ${idx === currentServerIndex ? 'active' : ''}`;
+        icon.innerText = s.icon;
+        icon.title = s.name;
+        icon.onclick = () => switchServer(idx);
+        bar.insertBefore(icon, bar.lastElementChild);
+    });
+}
+
+function switchServer(idx) {
+    currentServerIndex = idx;
+    const s = userServers[idx];
+    currentChannelName = s.channels[0] || 'общий';
+    document.getElementById('current-server-title').innerText = s.name;
+    renderServerBar();
+    renderChannels();
+    loadChannelMessages();
+    renderMembersList();
+    broadcastPresence();
+}
+
+function renderChannels() {
+    const container = document.getElementById('channel-items-container');
+    container.innerHTML = '';
+    const s = userServers[currentServerIndex];
+    if (!s) return;
+
+    // ПРАВА: Создавать каналы и настраивать сервер может ТОЛЬКО создатель!
+    const isOwner = (s.ownerId === currentUser.id);
+
+    document.getElementById('btn-add-channel-plus').style.display = isOwner ? 'block' : 'none';
+    document.getElementById('menu-create-channel-opt').style.display = isOwner ? 'flex' : 'none';
+    document.getElementById('menu-server-settings-opt').style.display = isOwner ? 'flex' : 'none';
+
+    s.channels.forEach(ch => {
+        const item = document.createElement('div');
+        item.className = `channel-item ${ch === currentChannelName ? 'active' : ''}`;
+        item.innerHTML = `<span>#</span> <span>${ch}</span>`;
+        item.onclick = () => {
+            currentChannelName = ch;
+            document.getElementById('current-channel-header').innerText = ch;
+            renderChannels();
+            loadChannelMessages();
+        };
+        container.appendChild(item);
+    });
+    document.getElementById('current-channel-header').innerText = currentChannelName;
+}
+
+function toggleServerDropdown() {
+    const menu = document.getElementById('server-dropdown');
+    menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+}
+window.addEventListener('click', e => {
+    if (!e.target.closest('.server-header') && !e.target.closest('#server-dropdown')) {
+        document.getElementById('server-dropdown').style.display = 'none';
+    }
+});
+
+function openInviteModal() {
+    document.getElementById('server-dropdown').style.display = 'none';
+    const s = userServers[currentServerIndex];
+    const inviteCode = safeEncode(JSON.stringify({ id: s.id, name: s.name, icon: s.icon, ownerId: s.ownerId, channels: s.channels }));
+    const inviteUrl = `${window.location.origin}${window.location.pathname}#invite=${inviteCode}`;
+
+    document.getElementById('invite-link-display').value = inviteUrl;
+    openModal('invite-modal');
+}
+
+function copyInviteLink() {
+    const input = document.getElementById('invite-link-display');
+    input.select();
+    navigator.clipboard.writeText(input.value);
+    const btn = document.getElementById('btn-copy-invite');
+    btn.innerText = '✔ Скопировано!';
+    setTimeout(() => btn.innerText = '📋 Скопировать ссылку', 2000);
+}
+
+function switchServerModalTab(tab) {
+    document.getElementById('tab-srv-create').classList.toggle('active', tab === 'create');
+    document.getElementById('tab-srv-join').classList.toggle('active', tab === 'join');
+    document.getElementById('panel-srv-create').style.display = tab === 'create' ? 'block' : 'none';
+    document.getElementById('panel-srv-join').style.display = tab === 'join' ? 'block' : 'none';
+}
+
+function confirmCreateServer() {
+    const name = document.getElementById('new-server-name').value.trim();
+    if (name) {
+        const sId = 'srv_' + Math.random().toString(36).substring(7);
+        const newSrv = {
+            id: sId,
+            name: name,
+            icon: name[0].toUpperCase(),
+            ownerId: currentUser.id, // ТЫ СОЗДАТЕЛЬ!
+            channels: ['общий', 'мемы']
+        };
+        userServers.push(newSrv);
+        saveUserAccountData();
+        switchServer(userServers.length - 1);
+        closeModal('add-server-modal');
+        document.getElementById('new-server-name').value = '';
+    }
+}
+
+function confirmJoinByInvite() {
+    const val = document.getElementById('join-invite-input').value.trim();
+    if (!val) return;
+    joinServerByCode(val);
+    closeModal('add-server-modal');
+    document.getElementById('join-invite-input').value = '';
+}
+
+function joinServerByCode(rawCode) {
+    try {
+        let code = rawCode;
+        if (code.includes('#invite=')) code = code.split('#invite=')[1];
+        const srvData = JSON.parse(safeDecode(code));
+        if (srvData && srvData.name) {
+            if (userServers.some(s => s.id === srvData.id)) {
+                alert('Вы уже состоите на этом сервере!');
+                return;
+            }
+            const srvObj = {
+                id: srvData.id,
+                name: srvData.name,
+                icon: srvData.icon || srvData.name[0].toUpperCase(),
+                ownerId: srvData.ownerId, // СОХРАНЯЕТСЯ НАСТОЯЩИЙ ВЛАДЕЛЕЦ!
+                channels: srvData.channels || ['общий']
+            };
+            userServers.push(srvObj);
+            saveUserAccountData();
+            switchServer(userServers.length - 1);
+            alert(`Успешно! Вы вошли на сервер "${srvData.name}"!`);
+        }
+    } catch(e) {
+        alert('Неверный код приглашения!');
+    }
+}
+
+function checkUrlInvite() {
+    if (window.location.hash.startsWith('#invite=')) {
+        const code = window.location.hash.replace('#invite=', '');
+        window.location.hash = '';
+        setTimeout(() => joinServerByCode(code), 600);
+    }
+}
+
+function leaveCurrentServer() {
+    if (userServers.length <= 1) {
+        alert('Нельзя покинуть единственный сервер!');
+        return;
+    }
+    if (confirm(`Покинуть сервер "${userServers[currentServerIndex].name}"?`)) {
+        userServers.splice(currentServerIndex, 1);
+        saveUserAccountData();
+        switchServer(0);
+    }
+}
+
+function openServerSettingsModal() {
+    document.getElementById('server-dropdown').style.display = 'none';
+    const s = userServers[currentServerIndex];
+    document.getElementById('edit-server-name-input').value = s.name;
+    openModal('server-settings-modal');
+}
+
+function saveServerSettings() {
+    const s = userServers[currentServerIndex];
+    const newName = document.getElementById('edit-server-name-input').value.trim();
+    if (newName) {
+        s.name = newName;
+        s.icon = newName[0].toUpperCase();
+        saveUserAccountData();
+        renderServerBar();
+        document.getElementById('current-server-title').innerText = s.name;
+        closeModal('server-settings-modal');
+        sendPacket('SERVER_SYNC', { serverId: s.id, newName: newName, newIcon: s.icon });
+    }
+}
+
+function deleteCurrentServer() {
+    const s = userServers[currentServerIndex];
+    if (confirm(`Вы точно хотите удалить свой сервер "${s.name}"? Это действие необратимо.`)) {
+        userServers.splice(currentServerIndex, 1);
+        saveUserAccountData();
+        closeModal('server-settings-modal');
+        switchServer(0);
+    }
+}
+
+function confirmCreateChannel() {
+    const s = userServers[currentServerIndex];
+    if (s.ownerId !== currentUser.id) {
+        alert('Только создатель сервера может добавлять каналы!');
+        return;
+    }
+
+    const name = document.getElementById('new-channel-name').value.trim().toLowerCase().replace(/\s+/g, '-');
+    if (name) {
+        s.channels.push(name);
+        saveUserAccountData();
+        currentChannelName = name;
+        renderChannels();
+        loadChannelMessages();
+        closeModal('create-channel-modal');
+        document.getElementById('new-channel-name').value = '';
+
+        // Моментальная синхронизация нового канала у всех друзей!
+        sendPacket('CHANNEL_SYNC', { serverId: s.id, channelName: name });
+    }
+}
+
+// =========================================================================
+//                   СПИСОК УЧАСТНИКОВ ОНЛАЙН
+// =========================================================================
+function broadcastPresence() {
+    if (!currentUser || !userServers[currentServerIndex]) return;
+    const currentSrv = userServers[currentServerIndex];
+
+    onlineMembers[currentUser.id] = {
+        id: currentUser.id,
+        name: currentUser.name,
+        avatarUrl: currentUser.avatarUrl,
+        color: currentUser.color,
+        serverId: currentSrv.id,
+        lastPing: Date.now()
+    };
+
+    sendPacket('PRESENCE', {
+        serverId: currentSrv.id,
+        avatarUrl: currentUser.avatarUrl
+    });
+
+    renderMembersList();
+}
+
+function renderMembersList() {
+    const container = document.getElementById('members-list-container');
+    container.innerHTML = '';
+    const currentSrv = userServers[currentServerIndex];
+    if (!currentSrv) return;
+
+    const now = Date.now();
+    const activeMembers = Object.values(onlineMembers).filter(m => {
+        return m.serverId === currentSrv.id && (now - m.lastPing < 15000);
+    });
+
+    activeMembers.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'member-item';
+        const isOwner = (m.id === currentSrv.ownerId);
+
+        const avatarBg = m.avatarUrl ? `background-image: url('${m.avatarUrl}');` : `background: ${m.color};`;
+        const avatarLetter = !m.avatarUrl ? m.name[0].toUpperCase() : '';
+
+        item.innerHTML = `
+            <div class="avatar" style="${avatarBg}">${avatarLetter}</div>
+            <span class="member-name">
+                ${escapeHtml(m.name)}
+                ${isOwner ? '<span class="owner-crown" title="Создатель сервера">👑</span>' : ''}
+            </span>
+        `;
+        container.appendChild(item);
+    });
+}
+
+// =========================================================================
+//                   СЕТЬ БЕЗ СБОЕВ (HIVEMQ WEBSOCKET)
+// =========================================================================
+function connectNetwork() {
     const badge = document.getElementById('net-badge');
     const text = document.getElementById('net-text');
 
-    const randomClientId = 'client_' + Math.random().toString(16).substring(2, 10);
+    const randomClientId = 'u_' + Math.random().toString(16).substring(2, 10);
     mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
         clientId: randomClientId,
         clean: true,
@@ -411,7 +866,7 @@ function connectOnlineNetwork() {
 
     mqttClient.on('connect', () => {
         badge.style.color = 'var(--green)';
-        text.innerText = `🟢 В сети (Комната: ${currentRoom})`;
+        text.innerText = `В сети (${currentRoom})`;
         mqttClient.subscribe(topic);
         broadcastPresence();
     });
@@ -424,7 +879,7 @@ function connectOnlineNetwork() {
     mqttClient.on('message', async (t, payload) => {
         try {
             const data = JSON.parse(payload.toString());
-            if (data.senderId === currentUser.id) return; // Игнорируем свои же пакеты
+            if (data.senderId === currentUser.id) return;
             handleIncomingPacket(data);
         } catch(e) {}
     });
@@ -438,39 +893,54 @@ function sendPacket(type, extra = {}) {
         author: currentUser.name,
         color: currentUser.color,
         avatarUrl: currentUser.avatarUrl,
-        channel: currentChannelName,
+        serverId: userServers[currentServerIndex].id,
+        channelName: currentChannelName,
         type: type,
         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
         ...extra
     }));
 }
 
-// =========================================================================
-//            ОБРАБОТКА ВСЕХ ВХОДЯЩИХ СООБЩЕНИЙ БЕЗ БАГОВ!
-// =========================================================================
 function handleIncomingPacket(data) {
-    // 1. Онлайн друга
     if (data.type === 'PRESENCE') {
         onlineMembers[data.senderId] = {
             id: data.senderId,
             name: data.author,
             avatarUrl: data.avatarUrl,
             color: data.color,
+            serverId: data.serverId,
             lastPing: Date.now()
         };
         renderMembersList();
     }
-    // 2. Входящее сообщение в чат
     else if (data.type === 'CHAT_MSG') {
-        saveMessage(data.channel, data);
+        saveMessage(data.serverId, data.channelName, data);
 
-        // Если открыт этот канал — сразу отображаем на экране!
-        if (data.channel === currentChannelName) {
+        if (userServers[currentServerIndex] && data.serverId === userServers[currentServerIndex].id && data.channelName === currentChannelName) {
             renderMessage(data);
             playDiscordPing();
         }
     }
-    // 3. Звонки WebRTC
+    else if (data.type === 'CHANNEL_SYNC') {
+        const srv = userServers.find(s => s.id === data.serverId);
+        if (srv && !srv.channels.includes(data.channelName)) {
+            srv.channels.push(data.channelName);
+            saveUserAccountData();
+            if (userServers[currentServerIndex].id === data.serverId) renderChannels();
+        }
+    }
+    else if (data.type === 'SERVER_SYNC') {
+        const srv = userServers.find(s => s.id === data.serverId);
+        if (srv) {
+            srv.name = data.newName;
+            srv.icon = data.newIcon;
+            saveUserAccountData();
+            renderServerBar();
+            if (userServers[currentServerIndex].id === data.serverId) {
+                document.getElementById('current-server-title').innerText = srv.name;
+            }
+        }
+    }
     else if (data.type === 'CALL_OFFER') {
         document.getElementById('caller-name').innerText = `${data.author} звонит вам`;
         document.getElementById('incoming-call-modal').style.display = 'block';
@@ -493,6 +963,7 @@ function sendTextMessage() {
     const text = input.value.trim();
     if (!text) return;
 
+    const s = userServers[currentServerIndex];
     const msgData = {
         author: currentUser.name,
         color: currentUser.color,
@@ -500,10 +971,11 @@ function sendTextMessage() {
         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
         content: text,
         msgType: 'text',
-        channel: currentChannelName
+        serverId: s.id,
+        channelName: currentChannelName
     };
 
-    saveMessage(currentChannelName, msgData);
+    saveMessage(s.id, currentChannelName, msgData);
     sendPacket('CHAT_MSG', msgData);
     renderMessage(msgData);
     input.value = '';
@@ -515,7 +987,9 @@ async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
+    const s = userServers[currentServerIndex];
     const isImg = file.type.startsWith('image/');
+
     if (isImg) {
         try {
             const formData = new FormData();
@@ -534,10 +1008,11 @@ async function handleFileUpload(e) {
                     time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
                     msgType: 'image',
                     fileUrl: imgUrl,
-                    channel: currentChannelName
+                    serverId: s.id,
+                    channelName: currentChannelName
                 };
 
-                saveMessage(currentChannelName, msgData);
+                saveMessage(s.id, currentChannelName, msgData);
                 sendPacket('CHAT_MSG', msgData);
                 renderMessage(msgData);
             }
@@ -545,7 +1020,7 @@ async function handleFileUpload(e) {
     } else {
         const reader = new FileReader();
         reader.onload = () => {
-            if (file.size > 80 * 1024) { alert('Файлы поддерживаются до 80 КБ! Фотографии можно слать любого размера.'); return; }
+            if (file.size > 80 * 1024) { alert('Файлы поддерживаются до 80 КБ! Фотографии можно слать любых размеров.'); return; }
             const msgData = {
                 author: currentUser.name,
                 color: currentUser.color,
@@ -554,10 +1029,11 @@ async function handleFileUpload(e) {
                 msgType: 'file',
                 fileUrl: reader.result,
                 fileName: file.name,
-                channel: currentChannelName
+                serverId: s.id,
+                channelName: currentChannelName
             };
 
-            saveMessage(currentChannelName, msgData);
+            saveMessage(s.id, currentChannelName, msgData);
             sendPacket('CHAT_MSG', msgData);
             renderMessage(msgData);
         };
@@ -566,7 +1042,7 @@ async function handleFileUpload(e) {
     e.target.value = '';
 }
 
-// Голосовые сообщения (ГС)
+// Голосовые сообщения
 let mediaRecorder = null, audioChunks = [], isRecording = false;
 async function toggleVoiceRecord() {
     initAudio();
@@ -581,6 +1057,7 @@ async function toggleVoiceRecord() {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
                 reader.onload = () => {
+                    const s = userServers[currentServerIndex];
                     const msgData = {
                         author: currentUser.name,
                         color: currentUser.color,
@@ -588,10 +1065,11 @@ async function toggleVoiceRecord() {
                         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
                         msgType: 'voice_note',
                         fileUrl: reader.result,
-                        channel: currentChannelName
+                        serverId: s.id,
+                        channelName: currentChannelName
                     };
 
-                    saveMessage(currentChannelName, msgData);
+                    saveMessage(s.id, currentChannelName, msgData);
                     sendPacket('CHAT_MSG', msgData);
                     renderMessage(msgData);
                 };
@@ -609,7 +1087,6 @@ async function toggleVoiceRecord() {
     }
 }
 
-// Отрисовка в чате
 function renderMessage(data, scroll = true) {
     const container = document.getElementById('messages');
     const msg = document.createElement('div');
@@ -657,55 +1134,7 @@ function playVoiceNote(btn, audioSrc) {
     audio.onended = () => btn.innerText = '▶';
 }
 
-function switchChannel(name, element) {
-    currentChannelName = name;
-    document.querySelectorAll('.channel-item').forEach(el => el.classList.remove('active'));
-    element.classList.add('active');
-    document.getElementById('current-channel-header').innerText = name;
-    loadChannelMessages();
-}
-
-// =========================================================================
-//                   СПИСОК УЧАСТНИКОВ ОНЛАЙН
-// =========================================================================
-function broadcastPresence() {
-    if (!currentUser) return;
-    onlineMembers[currentUser.id] = {
-        id: currentUser.id,
-        name: currentUser.name,
-        avatarUrl: currentUser.avatarUrl,
-        color: currentUser.color,
-        lastPing: Date.now()
-    };
-    sendPacket('PRESENCE');
-    renderMembersList();
-}
-
-function renderMembersList() {
-    const container = document.getElementById('members-list-container');
-    container.innerHTML = '';
-    const now = Date.now();
-
-    // Показываем тех, кто пинговал за последние 15 секунд
-    const active = Object.values(onlineMembers).filter(m => (now - m.lastPing < 15000));
-
-    active.forEach(m => {
-        const item = document.createElement('div');
-        item.className = 'member-item';
-        const avatarBg = m.avatarUrl ? `background-image: url('${m.avatarUrl}');` : `background: ${m.color};`;
-        const avatarLetter = !m.avatarUrl ? m.name[0].toUpperCase() : '';
-
-        item.innerHTML = `
-            <div class="avatar" style="${avatarBg}">${avatarLetter}</div>
-            <span class="member-name">${escapeHtml(m.name)}</span>
-        `;
-        container.appendChild(item);
-    });
-}
-
-// =========================================================================
-//                   ПРОФИЛЬ И АВАТАРКА
-// =========================================================================
+// Профиль и загрузка аватарки
 function handleAvatarFileSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -751,15 +1180,13 @@ function updateProfileUI() {
 function saveProfile() {
     const newName = document.getElementById('edit-profile-name').value.trim();
     if (newName) currentUser.name = newName;
-    localStorage.setItem('dc_saved_user_profile', JSON.stringify(currentUser));
+    saveUserAccountData();
     updateProfileUI();
     broadcastPresence();
     closeModal('profile-modal');
 }
 
-// =========================================================================
-//                   ГОЛОСОВЫЕ ЗВОНКИ WebRTC
-// =========================================================================
+// Звонки WebRTC
 let peerConnection = null, localStream = null;
 const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
@@ -767,7 +1194,7 @@ async function initiateCall() {
     initAudio();
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch(e) { alert('Разрешите микрофон в настройках браузера!'); return; }
+    } catch(e) { alert('Разрешите микрофон!'); return; }
     document.getElementById('voice-panel').style.display = 'flex';
     sendPacket('CALL_OFFER');
 }
@@ -831,6 +1258,9 @@ function toggleMute() {
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }
+
+// СТАРТ
+checkExistingSession();
 </script>
 </body>
 </html>

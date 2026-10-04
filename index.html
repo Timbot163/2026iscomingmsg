@@ -40,20 +40,32 @@
         .server-icon.add-btn { color: var(--green); border: 1px dashed var(--green); background: transparent; }
         .server-icon.add-btn:hover { background: var(--green); color: #fff; border-radius: 16px; }
 
-        /* 2. КАНАЛЫ */
+        /* 2. ЛЕВАЯ ПАНЕЛЬ (ДРУЗЬЯ ИЛИ КАНАЛЫ СЕРВЕРА) */
         .channels-sidebar {
             width: 240px; background: var(--bg-channels); display: flex; flex-direction: column; flex-shrink: 0;
         }
-        .server-header {
+        .sidebar-header {
             height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
             font-weight: bold; color: var(--text-header); border-bottom: 1px solid #1f2023; cursor: pointer; position: relative;
         }
-        .server-header:hover { background: rgba(255,255,255,0.03); }
-        .channels-list { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
+        .sidebar-header:hover { background: rgba(255,255,255,0.03); }
+
+        .sidebar-list { flex: 1; padding: 10px 8px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
         .category-header {
             display: flex; justify-content: space-between; align-items: center;
             font-size: 11px; font-weight: bold; color: var(--text-muted); text-transform: uppercase; padding: 6px;
         }
+
+        /* Элемент ЛС / Друга в списке (КАК НА СКРИНШОТЕ!) */
+        .dm-item {
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 4px;
+            color: var(--text-muted); cursor: pointer; font-size: 14px; position: relative;
+        }
+        .dm-item:hover, .dm-item.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
+        .dm-info { display: flex; flex-direction: column; overflow: hidden; }
+        .dm-name { font-weight: 600; color: var(--text-normal); font-size: 14px; }
+        .dm-status { font-size: 11px; color: var(--text-muted); }
+
         .channel-item {
             display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 4px;
             color: var(--text-muted); cursor: pointer; font-size: 14px;
@@ -154,7 +166,7 @@
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-        /* 4. СПИСОК УЧАСТНИКОВ */
+        /* 4. СПИСОК УЧАСТНИКОВ НА СЕРВЕРЕ */
         .members-sidebar {
             width: 220px; background: var(--bg-channels); display: flex; flex-direction: column;
             padding: 16px 10px; overflow-y: auto; flex-shrink: 0; border-left: 1px solid #202225;
@@ -165,6 +177,16 @@
         .member-item:hover { background: rgba(255,255,255,0.05); }
         .member-name { font-size: 14px; color: var(--text-normal); font-weight: 500; display: flex; align-items: center; gap: 6px; }
         .owner-crown { color: #f1c40f; font-size: 14px; }
+
+        /* ХАБ ДРУЗЕЙ (КОГДА НАЖАТА КНОПКА "ДРУЗЬЯ") */
+        .friends-hub-tabs {
+            display: flex; gap: 12px; border-bottom: 1px solid #232428; padding: 12px 16px;
+        }
+        .hub-tab {
+            padding: 6px 12px; border-radius: 4px; font-size: 14px; font-weight: bold; color: var(--text-muted); cursor: pointer;
+        }
+        .hub-tab:hover, .hub-tab.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
+        .hub-tab.add { background: var(--green); color: #fff; }
 
         /* МОДАЛКИ */
         .modal-overlay {
@@ -196,7 +218,7 @@
     <input type="file" id="file-uploader" style="display: none;" onchange="handleFileUpload(event)">
     <input type="file" id="avatar-uploader" accept="image/*" style="display: none;" onchange="handleAvatarFileSelect(event)">
 
-    <!-- 1. МОДАЛКА АВТОРИЗАЦИИ (ВХОД И РЕГИСТРАЦИЯ) -->
+    <!-- 1. МОДАЛКА ВХОДА И РЕГИСТРАЦИИ -->
     <div id="auth-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box">
             <h2 style="margin-bottom: 6px;">Discord Web</h2>
@@ -205,9 +227,8 @@
                 <div class="modal-tab active" id="tab-register" onclick="switchAuthTab('register')">Регистрация</div>
             </div>
 
-            <input type="text" id="auth-username" placeholder="Ваш никнейм">
-            <input type="password" id="auth-password" placeholder="Придумайте пароль">
-            <input type="text" id="auth-roomcode" placeholder="Код комнаты с другом" value="сталкеры">
+            <input type="text" id="auth-username" placeholder="Придумайте никнейм">
+            <input type="password" id="auth-password" placeholder="Пароль">
 
             <button class="call-header-btn" id="btn-auth-submit" style="width: 100%; justify-content: center; margin-top: 10px; padding: 11px;" onclick="handleAuthSubmit()">
                 ЗАРЕГИСТРИРОВАТЬСЯ
@@ -216,12 +237,27 @@
         </div>
     </div>
 
-    <!-- 2. МОДАЛКА СЕРВЕРОВ (СОЗДАНИЕ / ИНВАЙТ) -->
+    <!-- 2. МОДАЛКА КАРТОЧКИ ИГРОКА (ПО КЛИКУ НА УЧАСТНИКА) -->
+    <div id="user-card-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="avatar" id="ucard-avatar" style="width: 64px; height: 64px; font-size: 24px; margin: 0 auto 10px auto;"></div>
+            <h3 id="ucard-name">Игрок</h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Код дружбы: <b id="ucard-code" style="color: var(--blurple);"></b></p>
+
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button class="call-header-btn" style="flex:1; justify-content:center;" onclick="ucardSendFriendRequest()">➕ В друзья</button>
+                <button class="voice-btn" style="flex:1;" onclick="ucardOpenDM()">💬 Написать</button>
+            </div>
+            <button class="voice-btn" style="width: 100%; margin-top: 10px;" onclick="closeModal('user-card-modal')">Закрыть</button>
+        </div>
+    </div>
+
+    <!-- 3. МОДАЛКА ДОБАВЛЕНИЯ СЕРВЕРА -->
     <div id="add-server-modal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-tabs">
                 <div class="modal-tab active" id="tab-srv-create" onclick="switchServerModalTab('create')">Создать сервер</div>
-                <div class="modal-tab" id="tab-srv-join" onclick="switchServerModalTab('join')">По приглашению</div>
+                <div class="modal-tab" id="tab-srv-join" onclick="switchServerModalTab('join')">По инвайту</div>
             </div>
 
             <div id="panel-srv-create">
@@ -230,7 +266,7 @@
             </div>
 
             <div id="panel-srv-join" style="display: none;">
-                <input type="text" id="join-invite-input" placeholder="Вставьте код или ссылку приглашения">
+                <input type="text" id="join-invite-input" placeholder="Код или ссылка приглашения">
                 <button class="call-header-btn" style="width: 100%; justify-content: center; margin-top: 8px;" onclick="confirmJoinByInvite()">Присоединиться</button>
             </div>
 
@@ -238,18 +274,18 @@
         </div>
     </div>
 
-    <!-- 3. МОДАЛКА ИНВАЙТА -->
+    <!-- 4. МОДАЛКА ИНВАЙТА СЕРВЕРА -->
     <div id="invite-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>Пригласить друзей</h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Отправьте эту ссылку другу, чтобы он зашел на сервер:</p>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Отправь ссылку другу, чтобы он зашел к тебе на сервер:</p>
             <input type="text" id="invite-link-display" readonly>
             <button class="call-header-btn" id="btn-copy-invite" style="width: 100%; justify-content: center;" onclick="copyInviteLink()">📋 Скопировать ссылку</button>
             <button class="voice-btn" style="width: 100%; margin-top: 8px;" onclick="closeModal('invite-modal')">Закрыть</button>
         </div>
     </div>
 
-    <!-- 4. МОДАЛКА СОЗДАНИЯ КАНАЛА -->
+    <!-- 5. МОДАЛКА СОЗДАНИЯ КАНАЛА -->
     <div id="create-channel-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>Новый канал</h3>
@@ -261,19 +297,6 @@
         </div>
     </div>
 
-    <!-- 5. МОДАЛКА НАСТРОЕК СЕРВЕРА (ТОЛЬКО ДЛЯ ВЛАДЕЛЬЦА) -->
-    <div id="server-settings-modal" class="modal-overlay">
-        <div class="modal-box">
-            <h3>Настройки сервера</h3>
-            <input type="text" id="edit-server-name-input" placeholder="Новое название">
-            <div style="display:flex; gap:8px; margin-top:10px;">
-                <button class="call-header-btn" style="flex:1; justify-content:center;" onclick="saveServerSettings()">Сохранить</button>
-                <button class="voice-btn danger" style="flex:1;" onclick="deleteCurrentServer()">Удалить сервер</button>
-            </div>
-            <button class="voice-btn" style="width: 100%; margin-top: 8px;" onclick="closeModal('server-settings-modal')">Отмена</button>
-        </div>
-    </div>
-
     <!-- 6. МОДАЛКА ПРОФИЛЯ -->
     <div id="profile-modal" class="modal-overlay">
         <div class="modal-box">
@@ -281,6 +304,12 @@
             <div style="margin: 10px 0; display:flex; flex-direction:column; align-items:center;">
                 <div class="avatar" id="edit-avatar-preview" style="width: 64px; height: 64px; font-size: 24px; margin-bottom: 8px;"></div>
                 <button class="voice-btn" onclick="document.getElementById('avatar-uploader').click()">📷 Загрузить аватарку</button>
+            </div>
+
+            <div style="font-size: 12px; color: var(--text-muted); text-align: left;">Твой код дружбы (Steam ID):</div>
+            <div style="display: flex; gap: 6px; margin: 4px 0 10px 0;">
+                <input type="text" id="my-friend-code-display" readonly style="margin: 0; font-weight: bold; color: var(--blurple);">
+                <button class="call-header-btn" style="padding: 0 12px;" onclick="copyMyFriendCode()">Копия</button>
             </div>
 
             <input type="text" id="edit-profile-name" placeholder="Ваш никнейм">
@@ -304,33 +333,36 @@
 
     <!-- ОСНОВНОЙ ИНТЕРФЕЙС -->
     <div class="app-container">
-        <!-- 1. СЕРВЕРЫ -->
+        <!-- 1. ПАНЕЛЬ СЕРВЕРОВ (СВЕРХУ КНОПКА ДИСКОРД ДЛЯ ЛС И ДРУЗЕЙ!) -->
         <div class="servers-sidebar" id="server-bar">
-            <div class="server-icon add-btn" title="Создать сервер или войти по приглашению" onclick="openModal('add-server-modal')">+</div>
+            <!-- Кнопка Личных сообщений (Всегда первая!) -->
+            <div class="server-icon active" id="btn-nav-dms" title="Личные сообщения и Друзья" onclick="switchToDMsView()">
+                💬
+            </div>
+            <div style="width: 32px; height: 2px; background: #35363c; border-radius: 1px; margin: 2px 0;"></div>
+            <!-- Серверы добавляются сюда -->
+            <div class="server-icon add-btn" title="Создать сервер" onclick="openModal('add-server-modal')">+</div>
         </div>
 
-        <!-- 2. КАНАЛЫ -->
+        <!-- 2. ЛЕВАЯ КОЛОНКА (СПИСОК ДРУЗЕЙ В ЛС ИЛИ КАНАЛЫ СЕРВЕРА) -->
         <div class="channels-sidebar">
-            <div class="server-header" onclick="toggleServerDropdown()">
-                <span id="current-server-title">Главный сервер</span>
-                <span style="font-size: 12px;">▼</span>
+            <div class="sidebar-header" id="sidebar-header-box" onclick="handleSidebarHeaderClick()">
+                <span id="sidebar-header-title">Личные сообщения</span>
+                <span id="sidebar-header-arrow" style="font-size: 12px; display: none;">▼</span>
             </div>
 
+            <!-- Меню сервера -->
             <div class="dropdown-menu" id="server-dropdown">
                 <div class="dropdown-item" onclick="openInviteModal()"><span>👥 Пригласить людей</span> <span>+</span></div>
                 <div class="dropdown-item" id="menu-create-channel-opt" onclick="openModal('create-channel-modal')"><span>➕ Создать канал</span></div>
-                <div class="dropdown-item" id="menu-server-settings-opt" onclick="openServerSettingsModal()"><span>⚙ Настройки сервера</span></div>
                 <div class="dropdown-item danger" onclick="leaveCurrentServer()"><span>🚪 Покинуть сервер</span></div>
             </div>
 
-            <div class="channels-list">
-                <div class="category-header">
-                    <span>Текстовые каналы</span>
-                    <span id="btn-add-channel-plus" style="cursor: pointer; font-size: 14px; display: none;" onclick="openModal('create-channel-modal')" title="Создать канал">+</span>
-                </div>
-                <div id="channel-items-container"></div>
+            <div class="sidebar-list" id="sidebar-content-list">
+                <!-- Друзья или каналы -->
             </div>
 
+            <!-- БЛОК ГОЛОСА -->
             <div id="voice-panel">
                 <div class="voice-status"><span>🟢</span> Голос подключен</div>
                 <div style="display:flex; justify-content:space-between; margin-top:4px;">
@@ -339,42 +371,59 @@
                 </div>
             </div>
 
+            <!-- ПРОФИЛЬ СНИЗУ -->
             <div class="user-footer" onclick="openModal('profile-modal')">
                 <div style="display:flex; align-items:center; gap:8px;">
                     <div class="avatar" id="my-avatar">Я<div class="status-dot"></div></div>
                     <div>
                         <div id="my-name" style="font-size: 13px; font-weight:bold; color:#fff;">Сталкер</div>
-                        <div style="font-size: 11px; color:var(--text-muted);">Настройки профиля</div>
+                        <div style="font-size: 11px; color:var(--text-muted);" id="my-code-preview">ID: 000000</div>
                     </div>
                 </div>
                 <span style="color: var(--text-muted); font-size: 14px;">⚙</span>
             </div>
         </div>
 
-        <!-- 3. ЧАТ -->
+        <!-- 3. ЧАТ / ХАБ ДРУЗЕЙ -->
         <div class="chat-area">
             <div class="chat-header">
-                <div><span>#</span> <span id="current-channel-header">общий</span></div>
+                <div><span>@</span> <span id="current-chat-header">Друзья</span></div>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <div class="net-status-badge" id="net-badge"><span>●</span> <span id="net-text">Подключение...</span></div>
-                    <button class="call-header-btn" onclick="initiateCall()">📞 Позвонить</button>
+                    <div class="net-status-badge" id="net-badge"><span>●</span> <span id="net-text">Сеть активна</span></div>
+                    <button class="call-header-btn" id="btn-header-call" style="display: none;" onclick="initiateCall()">📞 Позвонить</button>
                 </div>
             </div>
 
-            <div class="messages-container" id="messages"></div>
+            <!-- Хаб друзей (когда открыт раздел Друзья) -->
+            <div id="friends-hub-view" style="display: flex; flex-direction: column; flex: 1;">
+                <div class="friends-hub-tabs">
+                    <div class="hub-tab active" onclick="switchHubTab('all', this)">Все друзья</div>
+                    <div class="hub-tab" onclick="switchHubTab('pending', this)">Заявки <span id="requests-badge"></span></div>
+                    <div class="hub-tab add" onclick="switchHubTab('add', this)">Добавить в друзья</div>
+                </div>
 
-            <div class="chat-input-wrapper">
-                <div class="chat-input-box">
-                    <button class="input-action-btn" title="Прикрепить фото или файл" onclick="document.getElementById('file-uploader').click()">➕</button>
-                    <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
-                    <button class="input-action-btn" id="voice-record-btn" title="Записать голосовое сообщение" onclick="toggleVoiceRecord()">🎙</button>
-                    <button class="call-header-btn" style="padding: 6px 12px;" onclick="sendTextMessage()">Отправить</button>
+                <div id="hub-content" style="flex: 1; padding: 20px; overflow-y: auto;">
+                    <!-- Вкладки хаба -->
+                </div>
+            </div>
+
+            <!-- Обычный чат сообщений -->
+            <div id="chat-conversation-view" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
+                <div class="messages-container" id="messages"></div>
+
+                <div class="chat-input-wrapper">
+                    <div class="chat-input-box">
+                        <button class="input-action-btn" title="Прикрепить фото или файл" onclick="document.getElementById('file-uploader').click()">➕</button>
+                        <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
+                        <button class="input-action-btn" id="voice-record-btn" title="Записать голосовое сообщение" onclick="toggleVoiceRecord()">🎙</button>
+                        <button class="call-header-btn" style="padding: 6px 12px;" onclick="sendTextMessage()">Отправить</button>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- 4. СПИСОК УЧАСТНИКОВ -->
-        <div class="members-sidebar">
+        <!-- 4. СПИСОК УЧАСТНИКОВ СЕРВЕРА (СПРАВА) -->
+        <div class="members-sidebar" id="members-sidebar-col" style="display: none;">
             <div class="category-header" style="padding: 4px 6px;">УЧАСТНИКИ ОНЛАЙН</div>
             <div id="members-list-container"></div>
         </div>
@@ -403,71 +452,40 @@ function safeEncode(str) { return encodeURIComponent(str); }
 function safeDecode(str) { try { return decodeURIComponent(str); } catch(e) { return str; } }
 
 // =========================================================================
-//            БАЗА ДАННЫХ ИСТОРИИ ЧАТА (СООБЩЕНИЯ НЕ ТЕРЯЮТСЯ!)
+//            СОСТОЯНИЕ И ХРАНИЛИЩЕ (ДРУЗЬЯ, СЕРВЕРЫ, ЛС)
 // =========================================================================
-function getChatHistory() {
-    return JSON.parse(localStorage.getItem('dc_v5_chat_history') || '{}');
-}
-function saveMessage(srvId, chName, msgObj) {
-    const history = getChatHistory();
-    const key = `${srvId}___${chName}`;
-    if (!history[key]) history[key] = [];
-    history[key].push(msgObj);
-    if (history[key].length > 150) history[key].shift();
-    localStorage.setItem('dc_v5_chat_history', JSON.stringify(history));
-}
-function loadChannelMessages() {
-    const container = document.getElementById('messages');
-    container.innerHTML = '';
-    const s = userServers[currentServerIndex];
-    if (!s) return;
-
-    const history = getChatHistory();
-    const key = `${s.id}___${currentChannelName}`;
-    const msgs = history[key] || [];
-    msgs.forEach(m => renderMessage(m, false));
-    container.scrollTop = container.scrollHeight;
-}
-
-// =========================================================================
-//            СИСТЕМА АККАУНТОВ И АВТОРИЗАЦИИ
-// =========================================================================
-let authMode = 'register';
 let currentUser = null;
-let currentRoom = 'сталкеры';
-let userServers = [];
-let currentServerIndex = 0;
+let currentView = 'DMS'; // 'DMS' (Личные сообщения) или 'SERVER'
+let activeDmFriend = null; // Текущий открытый друг в ЛС
+let currentServerIndex = -1;
 let currentChannelName = 'общий';
+let selectedUserForCard = null;
+
+let userServers = [];
+let onlineMembers = {}; // { [userId]: { id, name, friendCode, avatarUrl, color, serverId, lastPing } }
+let hubTabMode = 'all'; // 'all', 'pending', 'add'
 let mqttClient = null;
-let onlineMembers = {};
 
-const GLOBAL_MAIN_SRV_ID = 'global_main_server_2026';
-const GLOBAL_ZONE_SRV_ID = 'global_zone_server_2026';
-
-function getDefaultServers() {
-    return [
-        {
-            id: GLOBAL_MAIN_SRV_ID,
-            name: 'Главный сервер',
-            icon: '💬',
-            ownerId: 'admin_root',
-            channels: ['общий', 'мемы', 'файлы']
-        },
-        {
-            id: GLOBAL_ZONE_SRV_ID,
-            name: 'Чернобыль 3D',
-            icon: '☢',
-            ownerId: 'admin_root',
-            channels: ['зона', 'посиделки']
-        }
-    ];
+// Постоянное хранилище чата
+function getChatHistory() { return JSON.parse(localStorage.getItem('dc_v6_chat_history') || '{}'); }
+function saveMessage(chatKey, msgObj) {
+    const history = getChatHistory();
+    if (!history[chatKey]) history[chatKey] = [];
+    history[chatKey].push(msgObj);
+    if (history[chatKey].length > 150) history[chatKey].shift();
+    localStorage.setItem('dc_v6_chat_history', JSON.stringify(history));
 }
 
+// =========================================================================
+//                  АВТОРИЗАЦИЯ И СТАРТ С ЛС ДРУЗЕЙ
+// =========================================================================
 function checkExistingSession() {
-    const saved = localStorage.getItem('dc_active_user_v5');
+    const saved = localStorage.getItem('dc_user_account_v6');
     if (saved) {
         currentUser = JSON.parse(saved);
-        currentRoom = localStorage.getItem('dc_room_code_v5') || 'сталкеры';
+        if (!currentUser.friendCode) currentUser.friendCode = Math.floor(100000 + Math.random() * 900000).toString();
+        if (!currentUser.friends) currentUser.friends = [];
+        if (!currentUser.friendRequests) currentUser.friendRequests = [];
         initApp();
     } else {
         openModal('auth-modal');
@@ -480,14 +498,12 @@ function switchAuthTab(mode) {
     document.getElementById('tab-login').classList.toggle('active', mode === 'login');
     document.getElementById('tab-register').classList.toggle('active', mode === 'register');
     document.getElementById('btn-auth-submit').innerText = mode === 'login' ? 'ВОЙТИ' : 'ЗАРЕГИСТРИРОВАТЬСЯ';
-    document.getElementById('auth-password').placeholder = mode === 'login' ? 'Ваш пароль' : 'Придумайте пароль';
     document.getElementById('auth-error').style.display = 'none';
 }
 
 function handleAuthSubmit() {
     const username = document.getElementById('auth-username').value.trim();
     const password = document.getElementById('auth-password').value.trim();
-    const roomCode = document.getElementById('auth-roomcode').value.trim().toLowerCase() || 'сталкеры';
     const errBox = document.getElementById('auth-error');
 
     if (!username || !password) {
@@ -496,7 +512,7 @@ function handleAuthSubmit() {
         return;
     }
 
-    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v5') || '{}');
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v6') || '{}');
     const userKey = username.toLowerCase();
 
     if (authMode === 'register') {
@@ -508,95 +524,355 @@ function handleAuthSubmit() {
 
         const newUser = {
             id: 'u_' + Math.random().toString(36).substring(7),
+            friendCode: Math.floor(100000 + Math.random() * 900000).toString(), // 6-значный Steam ID
             name: username,
             password: safeEncode(password),
             avatarUrl: '',
             color: '#' + Math.floor(Math.random()*16777215).toString(16),
-            servers: getDefaultServers()
+            friends: [],
+            friendRequests: [],
+            servers: [
+                {
+                    id: 'global_srv_main',
+                    name: 'Главный сервер',
+                    icon: '💬',
+                    ownerId: 'admin_locked',
+                    channels: ['общий', 'мемы']
+                }
+            ]
         };
 
         db[userKey] = newUser;
-        localStorage.setItem('dc_accounts_db_v5', JSON.stringify(db));
-
+        localStorage.setItem('dc_accounts_db_v6', JSON.stringify(db));
         currentUser = newUser;
-        currentRoom = roomCode;
-        localStorage.setItem('dc_active_user_v5', JSON.stringify(currentUser));
-        localStorage.setItem('dc_room_code_v5', currentRoom);
-
+        localStorage.setItem('dc_user_account_v6', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initApp();
 
     } else {
-        const account = db[userKey];
-        if (!account || account.password !== safeEncode(password)) {
+        const acc = db[userKey];
+        if (!acc || acc.password !== safeEncode(password)) {
             errBox.innerText = 'Неверный логин или пароль!';
             errBox.style.display = 'block';
             return;
         }
-
-        currentUser = account;
-        currentRoom = roomCode;
-        localStorage.setItem('dc_active_user_v5', JSON.stringify(currentUser));
-        localStorage.setItem('dc_room_code_v5', currentRoom);
-
+        currentUser = acc;
+        localStorage.setItem('dc_user_account_v6', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initApp();
     }
 }
 
 document.getElementById('auth-password').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
-document.getElementById('auth-username').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
 
 function logout() {
-    localStorage.removeItem('dc_active_user_v5');
+    localStorage.removeItem('dc_user_account_v6');
     window.location.reload();
 }
 
+function saveUserData() {
+    localStorage.setItem('dc_user_account_v6', JSON.stringify(currentUser));
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v6') || '{}');
+    db[currentUser.name.toLowerCase()] = currentUser;
+    localStorage.setItem('dc_accounts_db_v6', JSON.stringify(db));
+}
+
+// СТАРТ ПРИЛОЖЕНИЯ: ОТКРЫВАЕТСЯ СРАЗУ С ЛС ПЕРВОГО ДРУГА (КАК ПРОСИЛ!)
 function initApp() {
     initAudio();
-    userServers = currentUser.servers || getDefaultServers();
+    userServers = currentUser.servers || [];
 
     updateProfileUI();
     renderServerBar();
-    renderChannels();
-    loadChannelMessages();
-    connectNetwork();
+    connectGlobalNetwork();
     checkUrlInvite();
 
-    setInterval(broadcastPresence, 4500);
-}
+    // ОТКРЫТИЕ ПО УМОЛЧАНИЮ: ЛИЧНЫЕ СООБЩЕНИЯ (РЕЖИМ DMS)
+    switchToDMsView();
 
-function saveUserAccountData() {
-    currentUser.servers = userServers;
-    localStorage.setItem('dc_active_user_v5', JSON.stringify(currentUser));
-    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v5') || '{}');
-    db[currentUser.name.toLowerCase()] = currentUser;
-    localStorage.setItem('dc_accounts_db_v5', JSON.stringify(db));
+    // Пинг онлайна каждые 4 секунды
+    setInterval(broadcastPresence, 4000);
 }
 
 // =========================================================================
-//         СЕРВЕРЫ, КАНАЛЫ И СТРОГИЕ ПРАВА СОЗДАТЕЛЯ (👑)
+//            РЕЖИМ ЛИЧНЫХ СООБЩЕНИЙ (DMS) И ДРУЗЕЙ
+// =========================================================================
+function switchToDMsView() {
+    currentView = 'DMS';
+    currentServerIndex = -1;
+
+    // Подсветка иконки
+    document.querySelectorAll('.server-icon').forEach(e => e.classList.remove('active'));
+    document.getElementById('btn-nav-dms').classList.add('active');
+
+    // Шапка левой колонки
+    document.getElementById('sidebar-header-title').innerText = "Личные сообщения";
+    document.getElementById('sidebar-header-arrow').style.display = "none";
+    document.getElementById('members-sidebar-col').style.display = "none"; // Прячем участников сервера
+
+    renderDMsList();
+
+    // Если есть друзья — сразу открываем первого друга (как ты просил!)
+    if (currentUser.friends && currentUser.friends.length > 0) {
+        openDirectMessage(currentUser.friends[0]);
+    } else {
+        openFriendsHub();
+    }
+}
+
+function renderDMsList() {
+    const list = document.getElementById('sidebar-content-list');
+    list.innerHTML = '';
+
+    // Кнопка "Друзья / Добавить"
+    const friendsHubBtn = document.createElement('div');
+    friendsHubBtn.className = `dm-item ${!activeDmFriend ? 'active' : ''}`;
+    friendsHubBtn.innerHTML = `
+        <div class="avatar" style="background: var(--blurple); width:28px; height:28px;">👥</div>
+        <div class="dm-name">Друзья</div>
+    `;
+    friendsHubBtn.onclick = () => openFriendsHub();
+    list.appendChild(friendsHubBtn);
+
+    const cat = document.createElement('div');
+    cat.className = 'category-header';
+    cat.innerText = 'ПРЯМЫЕ СООБЩЕНИЯ';
+    list.appendChild(cat);
+
+    // Список друзей в ЛС (точно как на твоем скриншоте!)
+    (currentUser.friends || []).forEach(f => {
+        const item = document.createElement('div');
+        const isActive = activeDmFriend && activeDmFriend.id === f.id;
+        item.className = `dm-item ${isActive ? 'active' : ''}`;
+
+        // Проверяем онлайн ли друг прямо сейчас
+        const isOnline = onlineMembers[f.id] && (Date.now() - onlineMembers[f.id].lastPing < 15000);
+        const statusColor = isOnline ? 'var(--green)' : '#555';
+        const statusText = isOnline ? 'В сети' : 'Не в сети';
+
+        const avBg = f.avatarUrl ? `background-image: url('${f.avatarUrl}');` : `background: ${f.color || '#5865f2'};`;
+        const avLetter = !f.avatarUrl ? f.name[0].toUpperCase() : '';
+
+        item.innerHTML = `
+            <div class="avatar" style="${avBg}">
+                ${avLetter}
+                <div class="status-dot" style="background: ${statusColor};"></div>
+            </div>
+            <div class="dm-info">
+                <span class="dm-name">${escapeHtml(f.name)}</span>
+                <span class="dm-status">${statusText}</span>
+            </div>
+        `;
+        item.onclick = () => openDirectMessage(f);
+        list.appendChild(item);
+    });
+}
+
+function openFriendsHub() {
+    activeDmFriend = null;
+    document.getElementById('current-chat-header').innerText = "Друзья";
+    document.getElementById('btn-header-call').style.display = "none";
+    document.getElementById('chat-conversation-view').style.display = "none";
+    document.getElementById('friends-hub-view').style.display = "flex";
+    renderDMsList();
+    renderHubContent();
+}
+
+function openDirectMessage(friend) {
+    activeDmFriend = friend;
+    document.getElementById('friends-hub-view').style.display = "none";
+    document.getElementById('chat-conversation-view').style.display = "flex";
+    document.getElementById('btn-header-call').style.display = "flex";
+    document.getElementById('current-chat-header').innerText = friend.name;
+
+    renderDMsList();
+    loadDmMessages();
+}
+
+function getDmKey() {
+    if (!activeDmFriend) return '';
+    const ids = [currentUser.id, activeDmFriend.id].sort();
+    return `dm_${ids[0]}_${ids[1]}`;
+}
+
+function loadDmMessages() {
+    const container = document.getElementById('messages');
+    container.innerHTML = '';
+    const key = getDmKey();
+    const history = getChatHistory();
+    const msgs = history[key] || [];
+    msgs.forEach(m => renderMessage(m, false));
+    container.scrollTop = container.scrollHeight;
+}
+
+// Вкладки в хабе друзей
+function switchHubTab(tab, el) {
+    hubTabMode = tab;
+    document.querySelectorAll('.hub-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderHubContent();
+}
+
+function renderHubContent() {
+    const box = document.getElementById('hub-content');
+    box.innerHTML = '';
+
+    const reqBadge = document.getElementById('requests-badge');
+    const reqs = currentUser.friendRequests || [];
+    reqBadge.innerText = reqs.length > 0 ? `(${reqs.length})` : '';
+
+    if (hubTabMode === 'all') {
+        const friends = currentUser.friends || [];
+        if (friends.length === 0) {
+            box.innerHTML = `<p style="color:var(--text-muted); text-align:center; margin-top:40px;">У вас пока нет друзей. Отправьте свой код дружбы другу во вкладке "Добавить в друзья"!</p>`;
+            return;
+        }
+        friends.forEach(f => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(255,255,255,0.03); border-radius:8px; margin-bottom:8px;';
+            row.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div class="avatar" style="${f.avatarUrl ? `background-image:url('${f.avatarUrl}')` : `background:${f.color}`}">${!f.avatarUrl ? f.name[0] : ''}</div>
+                    <div>
+                        <div style="font-weight:bold; color:#fff;">${escapeHtml(f.name)}</div>
+                        <div style="font-size:11px; color:var(--text-muted);">Код: ${f.friendCode || '000000'}</div>
+                    </div>
+                </div>
+                <button class="call-header-btn" style="padding:4px 12px; font-size:12px;" onclick="openDirectMessage({id:'${f.id}', name:'${f.name}', avatarUrl:'${f.avatarUrl||''}', color:'${f.color}'})">Написать в ЛС</button>
+            `;
+            box.appendChild(row);
+        });
+
+    } else if (hubTabMode === 'pending') {
+        if (reqs.length === 0) {
+            box.innerHTML = `<p style="color:var(--text-muted); text-align:center; margin-top:40px;">Входящих заявок в друзья нет.</p>`;
+            return;
+        }
+        reqs.forEach((r, idx) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:10px 14px; background:rgba(255,255,255,0.03); border-radius:8px; margin-bottom:8px;';
+            row.innerHTML = `
+                <div style="font-weight:bold; color:#fff;">Заявка от: <span style="color:var(--blurple);">${escapeHtml(r.fromName)}</span> (ID: ${r.fromCode})</div>
+                <div style="display:flex; gap:6px;">
+                    <button class="call-header-btn" style="padding:4px 10px; font-size:12px;" onclick="acceptFriendRequest(${idx})">✔ Принять</button>
+                    <button class="voice-btn danger" style="padding:4px 10px; font-size:12px;" onclick="rejectFriendRequest(${idx})">✖</button>
+                </div>
+            `;
+            box.appendChild(row);
+        });
+
+    } else if (hubTabMode === 'add') {
+        box.innerHTML = `
+            <h3 style="color:#fff; margin-bottom:6px;">ДОБАВИТЬ В ДРУЗЬЯ</h3>
+            <p style="font-size:13px; color:var(--text-muted); margin-bottom:14px;">Вы можете добавить друга по его 6-значному Коду дружбы (Steam ID).</p>
+            <div style="display:flex; gap:8px; max-width:440px;">
+                <input type="text" id="target-friend-code" placeholder="Введи 6-значный код друга..." style="flex:1; padding:10px; background:var(--bg-input); border:1px solid #444; border-radius:4px; color:#fff; outline:none;">
+                <button class="call-header-btn" onclick="sendFriendRequestByCode()">Отправить заявку</button>
+            </div>
+            <div style="margin-top:25px; padding:15px; background:rgba(255,255,255,0.02); border:1px dashed var(--blurple); border-radius:8px; max-width:440px;">
+                <span style="font-size:12px; color:var(--text-muted);">Твой личный код дружбы:</span>
+                <div style="font-size:20px; font-weight:bold; color:var(--blurple); margin-top:4px;">${currentUser.friendCode}</div>
+            </div>
+        `;
+    }
+}
+
+// Заявки в друзья
+function sendFriendRequestByCode() {
+    const code = document.getElementById('target-friend-code').value.trim();
+    if (!code) return;
+    if (code === currentUser.friendCode) { alert('Нельзя добавить самого себя!'); return; }
+
+    sendPacket('FRIEND_REQUEST_SEND', {
+        targetCode: code,
+        fromId: currentUser.id,
+        fromName: currentUser.name,
+        fromCode: currentUser.friendCode,
+        fromAvatar: currentUser.avatarUrl,
+        fromColor: currentUser.color
+    });
+
+    alert('Заявка в друзья отправлена!');
+    document.getElementById('target-friend-code').value = '';
+}
+
+function acceptFriendRequest(idx) {
+    const req = currentUser.friendRequests[idx];
+    if (!req) return;
+
+    // Добавляем себе
+    if (!currentUser.friends.some(f => f.id === req.fromId)) {
+        currentUser.friends.push({
+            id: req.fromId,
+            name: req.fromName,
+            friendCode: req.fromCode,
+            avatarUrl: req.fromAvatar || '',
+            color: req.fromColor
+        });
+    }
+
+    currentUser.friendRequests.splice(idx, 1);
+    saveUserData();
+    renderHubContent();
+    renderDMsList();
+
+    // Оповещаем друга, чтобы он тоже добавил нас
+    sendPacket('FRIEND_REQUEST_ACCEPTED', {
+        toId: req.fromId,
+        acceptor: {
+            id: currentUser.id,
+            name: currentUser.name,
+            friendCode: currentUser.friendCode,
+            avatarUrl: currentUser.avatarUrl,
+            color: currentUser.color
+        }
+    });
+}
+
+function rejectFriendRequest(idx) {
+    currentUser.friendRequests.splice(idx, 1);
+    saveUserData();
+    renderHubContent();
+}
+
+// =========================================================================
+//            РЕЖИМ СЕРВЕРОВ (КАНАЛЫ И УЧАСТНИКИ)
 // =========================================================================
 function renderServerBar() {
     const bar = document.getElementById('server-bar');
-    bar.querySelectorAll('.server-item').forEach(e => e.remove());
+    bar.querySelectorAll('.custom-server-node').forEach(e => e.remove());
 
     userServers.forEach((s, idx) => {
         const icon = document.createElement('div');
-        icon.className = `server-icon server-item ${idx === currentServerIndex ? 'active' : ''}`;
+        const isActive = (currentView === 'SERVER' && idx === currentServerIndex);
+        icon.className = `server-icon custom-server-node ${isActive ? 'active' : ''}`;
         icon.innerText = s.icon;
         icon.title = s.name;
-        icon.onclick = () => switchServer(idx);
+        icon.onclick = () => switchToServer(idx);
         bar.insertBefore(icon, bar.lastElementChild);
     });
 }
 
-function switchServer(idx) {
+function switchToServer(idx) {
+    currentView = 'SERVER';
     currentServerIndex = idx;
+    activeDmFriend = null;
+
+    document.querySelectorAll('.server-icon').forEach(e => e.classList.remove('active'));
+    renderServerBar();
+
     const s = userServers[idx];
     currentChannelName = s.channels[0] || 'общий';
-    document.getElementById('current-server-title').innerText = s.name;
-    renderServerBar();
+
+    // Шапка колонки каналов
+    document.getElementById('sidebar-header-title').innerText = s.name;
+    document.getElementById('sidebar-header-arrow').style.display = "block";
+    document.getElementById('members-sidebar-col').style.display = "flex"; // Показываем участников!
+    document.getElementById('friends-hub-view').style.display = "none";
+    document.getElementById('chat-conversation-view').style.display = "flex";
+    document.getElementById('btn-header-call').style.display = "none";
+    document.getElementById('current-chat-header').innerText = currentChannelName;
+
     renderChannels();
     loadChannelMessages();
     renderMembersList();
@@ -604,276 +880,142 @@ function switchServer(idx) {
 }
 
 function renderChannels() {
-    const container = document.getElementById('channel-items-container');
-    container.innerHTML = '';
+    const list = document.getElementById('sidebar-content-list');
+    list.innerHTML = '';
     const s = userServers[currentServerIndex];
     if (!s) return;
 
-    // ПРАВА: Создавать каналы и настраивать сервер может ТОЛЬКО создатель!
     const isOwner = (s.ownerId === currentUser.id);
 
-    document.getElementById('btn-add-channel-plus').style.display = isOwner ? 'block' : 'none';
-    document.getElementById('menu-create-channel-opt').style.display = isOwner ? 'flex' : 'none';
-    document.getElementById('menu-server-settings-opt').style.display = isOwner ? 'flex' : 'none';
+    const cat = document.createElement('div');
+    cat.className = 'category-header';
+    cat.innerHTML = `
+        <span>ТЕКСТОВЫЕ КАНАЛЫ</span>
+        ${isOwner ? `<span style="cursor:pointer; font-size:14px;" onclick="openModal('create-channel-modal')">+</span>` : ''}
+    `;
+    list.appendChild(cat);
 
-    s.channels.forEach(ch => {
+    (s.channels || ['общий']).forEach(ch => {
         const item = document.createElement('div');
         item.className = `channel-item ${ch === currentChannelName ? 'active' : ''}`;
         item.innerHTML = `<span>#</span> <span>${ch}</span>`;
         item.onclick = () => {
             currentChannelName = ch;
-            document.getElementById('current-channel-header').innerText = ch;
+            document.getElementById('current-chat-header').innerText = ch;
             renderChannels();
             loadChannelMessages();
         };
-        container.appendChild(item);
+        list.appendChild(item);
     });
-    document.getElementById('current-channel-header').innerText = currentChannelName;
 }
 
-function toggleServerDropdown() {
-    const menu = document.getElementById('server-dropdown');
-    menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+function loadChannelMessages() {
+    const container = document.getElementById('messages');
+    container.innerHTML = '';
+    const s = userServers[currentServerIndex];
+    if (!s) return;
+
+    const key = `srv_${s.id}___${currentChannelName}`;
+    const history = getChatHistory();
+    const msgs = history[key] || [];
+    msgs.forEach(m => renderMessage(m, false));
+    container.scrollTop = container.scrollHeight;
+}
+
+function handleSidebarHeaderClick() {
+    if (currentView === 'SERVER') {
+        const menu = document.getElementById('server-dropdown');
+        menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+    }
 }
 window.addEventListener('click', e => {
-    if (!e.target.closest('.server-header') && !e.target.closest('#server-dropdown')) {
+    if (!e.target.closest('#sidebar-header-box') && !e.target.closest('#server-dropdown')) {
         document.getElementById('server-dropdown').style.display = 'none';
     }
 });
 
-function openInviteModal() {
-    document.getElementById('server-dropdown').style.display = 'none';
-    const s = userServers[currentServerIndex];
-    const inviteCode = safeEncode(JSON.stringify({ id: s.id, name: s.name, icon: s.icon, ownerId: s.ownerId, channels: s.channels }));
-    const inviteUrl = `${window.location.origin}${window.location.pathname}#invite=${inviteCode}`;
+// КЛИК ПО УЧАСТНИКУ В СПИСКЕ СПРАВА (КАРТОЧКА ПРОФИЛЯ БЕЗ БАГОВ!)
+function openUserCard(user) {
+    selectedUserForCard = user;
+    document.getElementById('ucard-name').innerText = user.name;
+    document.getElementById('ucard-code').innerText = user.friendCode || '000000';
 
-    document.getElementById('invite-link-display').value = inviteUrl;
-    openModal('invite-modal');
+    const av = document.getElementById('ucard-avatar');
+    if (user.avatarUrl) {
+        av.style.backgroundImage = `url('${user.avatarUrl}')`;
+        av.innerText = '';
+    } else {
+        av.style.backgroundImage = 'none';
+        av.style.background = user.color || '#5865f2';
+        av.innerText = user.name[0].toUpperCase();
+    }
+
+    openModal('user-card-modal');
 }
 
-function copyInviteLink() {
-    const input = document.getElementById('invite-link-display');
-    input.select();
-    navigator.clipboard.writeText(input.value);
-    const btn = document.getElementById('btn-copy-invite');
-    btn.innerText = '✔ Скопировано!';
-    setTimeout(() => btn.innerText = '📋 Скопировать ссылку', 2000);
+function ucardSendFriendRequest() {
+    closeModal('user-card-modal');
+    if (!selectedUserForCard) return;
+    if (selectedUserForCard.id === currentUser.id) { alert('Это вы!'); return; }
+
+    sendPacket('FRIEND_REQUEST_SEND', {
+        targetCode: selectedUserForCard.friendCode,
+        fromId: currentUser.id,
+        fromName: currentUser.name,
+        fromCode: currentUser.friendCode,
+        fromAvatar: currentUser.avatarUrl,
+        fromColor: currentUser.color
+    });
+    alert('Заявка в друзья отправлена!');
 }
 
-function switchServerModalTab(tab) {
-    document.getElementById('tab-srv-create').classList.toggle('active', tab === 'create');
-    document.getElementById('tab-srv-join').classList.toggle('active', tab === 'join');
-    document.getElementById('panel-srv-create').style.display = tab === 'create' ? 'block' : 'none';
-    document.getElementById('panel-srv-join').style.display = tab === 'join' ? 'block' : 'none';
-}
+function ucardOpenDM() {
+    closeModal('user-card-modal');
+    if (!selectedUserForCard) return;
+    if (selectedUserForCard.id === currentUser.id) return;
 
-function confirmCreateServer() {
-    const name = document.getElementById('new-server-name').value.trim();
-    if (name) {
-        const sId = 'srv_' + Math.random().toString(36).substring(7);
-        const newSrv = {
-            id: sId,
-            name: name,
-            icon: name[0].toUpperCase(),
-            ownerId: currentUser.id, // ТЫ СОЗДАТЕЛЬ!
-            channels: ['общий', 'мемы']
+    // Добавляем во временные друзья для чата
+    let f = currentUser.friends.find(x => x.id === selectedUserForCard.id);
+    if (!f) {
+        f = {
+            id: selectedUserForCard.id,
+            name: selectedUserForCard.name,
+            friendCode: selectedUserForCard.friendCode || '000000',
+            avatarUrl: selectedUserForCard.avatarUrl || '',
+            color: selectedUserForCard.color
         };
-        userServers.push(newSrv);
-        saveUserAccountData();
-        switchServer(userServers.length - 1);
-        closeModal('add-server-modal');
-        document.getElementById('new-server-name').value = '';
-    }
-}
-
-function confirmJoinByInvite() {
-    const val = document.getElementById('join-invite-input').value.trim();
-    if (!val) return;
-    joinServerByCode(val);
-    closeModal('add-server-modal');
-    document.getElementById('join-invite-input').value = '';
-}
-
-function joinServerByCode(rawCode) {
-    try {
-        let code = rawCode;
-        if (code.includes('#invite=')) code = code.split('#invite=')[1];
-        const srvData = JSON.parse(safeDecode(code));
-        if (srvData && srvData.name) {
-            if (userServers.some(s => s.id === srvData.id)) {
-                alert('Вы уже состоите на этом сервере!');
-                return;
-            }
-            const srvObj = {
-                id: srvData.id,
-                name: srvData.name,
-                icon: srvData.icon || srvData.name[0].toUpperCase(),
-                ownerId: srvData.ownerId, // СОХРАНЯЕТСЯ НАСТОЯЩИЙ ВЛАДЕЛЕЦ!
-                channels: srvData.channels || ['общий']
-            };
-            userServers.push(srvObj);
-            saveUserAccountData();
-            switchServer(userServers.length - 1);
-            alert(`Успешно! Вы вошли на сервер "${srvData.name}"!`);
-        }
-    } catch(e) {
-        alert('Неверный код приглашения!');
-    }
-}
-
-function checkUrlInvite() {
-    if (window.location.hash.startsWith('#invite=')) {
-        const code = window.location.hash.replace('#invite=', '');
-        window.location.hash = '';
-        setTimeout(() => joinServerByCode(code), 600);
-    }
-}
-
-function leaveCurrentServer() {
-    if (userServers.length <= 1) {
-        alert('Нельзя покинуть единственный сервер!');
-        return;
-    }
-    if (confirm(`Покинуть сервер "${userServers[currentServerIndex].name}"?`)) {
-        userServers.splice(currentServerIndex, 1);
-        saveUserAccountData();
-        switchServer(0);
-    }
-}
-
-function openServerSettingsModal() {
-    document.getElementById('server-dropdown').style.display = 'none';
-    const s = userServers[currentServerIndex];
-    document.getElementById('edit-server-name-input').value = s.name;
-    openModal('server-settings-modal');
-}
-
-function saveServerSettings() {
-    const s = userServers[currentServerIndex];
-    const newName = document.getElementById('edit-server-name-input').value.trim();
-    if (newName) {
-        s.name = newName;
-        s.icon = newName[0].toUpperCase();
-        saveUserAccountData();
-        renderServerBar();
-        document.getElementById('current-server-title').innerText = s.name;
-        closeModal('server-settings-modal');
-        sendPacket('SERVER_SYNC', { serverId: s.id, newName: newName, newIcon: s.icon });
-    }
-}
-
-function deleteCurrentServer() {
-    const s = userServers[currentServerIndex];
-    if (confirm(`Вы точно хотите удалить свой сервер "${s.name}"? Это действие необратимо.`)) {
-        userServers.splice(currentServerIndex, 1);
-        saveUserAccountData();
-        closeModal('server-settings-modal');
-        switchServer(0);
-    }
-}
-
-function confirmCreateChannel() {
-    const s = userServers[currentServerIndex];
-    if (s.ownerId !== currentUser.id) {
-        alert('Только создатель сервера может добавлять каналы!');
-        return;
+        currentUser.friends.push(f);
+        saveUserData();
     }
 
-    const name = document.getElementById('new-channel-name').value.trim().toLowerCase().replace(/\s+/g, '-');
-    if (name) {
-        s.channels.push(name);
-        saveUserAccountData();
-        currentChannelName = name;
-        renderChannels();
-        loadChannelMessages();
-        closeModal('create-channel-modal');
-        document.getElementById('new-channel-name').value = '';
-
-        // Моментальная синхронизация нового канала у всех друзей!
-        sendPacket('CHANNEL_SYNC', { serverId: s.id, channelName: name });
-    }
+    switchToDMsView();
+    openDirectMessage(f);
 }
 
 // =========================================================================
-//                   СПИСОК УЧАСТНИКОВ ОНЛАЙН
+//            БЕЗОТКАЗНЫЙ СЕТЕВОЙ МОСТ (БЕЗ ИСЧЕЗНОВЕНИЙ!)
 // =========================================================================
-function broadcastPresence() {
-    if (!currentUser || !userServers[currentServerIndex]) return;
-    const currentSrv = userServers[currentServerIndex];
-
-    onlineMembers[currentUser.id] = {
-        id: currentUser.id,
-        name: currentUser.name,
-        avatarUrl: currentUser.avatarUrl,
-        color: currentUser.color,
-        serverId: currentSrv.id,
-        lastPing: Date.now()
-    };
-
-    sendPacket('PRESENCE', {
-        serverId: currentSrv.id,
-        avatarUrl: currentUser.avatarUrl
-    });
-
-    renderMembersList();
-}
-
-function renderMembersList() {
-    const container = document.getElementById('members-list-container');
-    container.innerHTML = '';
-    const currentSrv = userServers[currentServerIndex];
-    if (!currentSrv) return;
-
-    const now = Date.now();
-    const activeMembers = Object.values(onlineMembers).filter(m => {
-        return m.serverId === currentSrv.id && (now - m.lastPing < 15000);
-    });
-
-    activeMembers.forEach(m => {
-        const item = document.createElement('div');
-        item.className = 'member-item';
-        const isOwner = (m.id === currentSrv.ownerId);
-
-        const avatarBg = m.avatarUrl ? `background-image: url('${m.avatarUrl}');` : `background: ${m.color};`;
-        const avatarLetter = !m.avatarUrl ? m.name[0].toUpperCase() : '';
-
-        item.innerHTML = `
-            <div class="avatar" style="${avatarBg}">${avatarLetter}</div>
-            <span class="member-name">
-                ${escapeHtml(m.name)}
-                ${isOwner ? '<span class="owner-crown" title="Создатель сервера">👑</span>' : ''}
-            </span>
-        `;
-        container.appendChild(item);
-    });
-}
-
-// =========================================================================
-//                   СЕТЬ БЕЗ СБОЕВ (HIVEMQ WEBSOCKET)
-// =========================================================================
-function connectNetwork() {
+function connectGlobalNetwork() {
     const badge = document.getElementById('net-badge');
     const text = document.getElementById('net-text');
 
-    const randomClientId = 'u_' + Math.random().toString(16).substring(2, 10);
+    const randomClientId = 'dc_u_' + Math.random().toString(16).substring(2, 10);
     mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
         clientId: randomClientId,
         clean: true,
         keepalive: 30
     });
 
-    const topic = 'discord_app_shared_room_' + encodeURIComponent(currentRoom);
+    const topic = 'discord_app_universal_network_room_2026';
 
     mqttClient.on('connect', () => {
         badge.style.color = 'var(--green)';
-        text.innerText = `В сети (${currentRoom})`;
+        text.innerText = 'В сети';
         mqttClient.subscribe(topic);
-        broadcastPresence();
-    });
 
-    mqttClient.on('error', () => {
-        badge.style.color = 'var(--red)';
-        text.innerText = 'Сбой сети';
+        // СРАЗУ СПРАШИВАЕМ СЕТЬ: КТО ОНЛАЙН? (ЧТОБЫ УЧАСТНИКИ НЕ ПРОПАДАЛИ!)
+        sendPacket('WHO_IS_ONLINE');
+        broadcastPresence();
     });
 
     mqttClient.on('message', async (t, payload) => {
@@ -887,14 +1029,13 @@ function connectNetwork() {
 
 function sendPacket(type, extra = {}) {
     if (!mqttClient || !currentUser) return;
-    const topic = 'discord_app_shared_room_' + encodeURIComponent(currentRoom);
+    const topic = 'discord_app_universal_network_room_2026';
     mqttClient.publish(topic, JSON.stringify({
         senderId: currentUser.id,
         author: currentUser.name,
         color: currentUser.color,
         avatarUrl: currentUser.avatarUrl,
-        serverId: userServers[currentServerIndex].id,
-        channelName: currentChannelName,
+        friendCode: currentUser.friendCode,
         type: type,
         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
         ...extra
@@ -902,68 +1043,100 @@ function sendPacket(type, extra = {}) {
 }
 
 function handleIncomingPacket(data) {
-    if (data.type === 'PRESENCE') {
+    // 1. Запрос "Кто онлайн?" -> отвечаем своим статусом
+    if (data.type === 'WHO_IS_ONLINE') {
+        broadcastPresence();
+    }
+    // 2. Статус присутствия
+    else if (data.type === 'PRESENCE') {
         onlineMembers[data.senderId] = {
             id: data.senderId,
             name: data.author,
             avatarUrl: data.avatarUrl,
             color: data.color,
+            friendCode: data.friendCode,
             serverId: data.serverId,
             lastPing: Date.now()
         };
         renderMembersList();
+        if (currentView === 'DMS') renderDMsList();
     }
-    else if (data.type === 'CHAT_MSG') {
-        saveMessage(data.serverId, data.channelName, data);
-
-        if (userServers[currentServerIndex] && data.serverId === userServers[currentServerIndex].id && data.channelName === currentChannelName) {
-            renderMessage(data);
-            playDiscordPing();
-        }
-    }
-    else if (data.type === 'CHANNEL_SYNC') {
-        const srv = userServers.find(s => s.id === data.serverId);
-        if (srv && !srv.channels.includes(data.channelName)) {
-            srv.channels.push(data.channelName);
-            saveUserAccountData();
-            if (userServers[currentServerIndex].id === data.serverId) renderChannels();
-        }
-    }
-    else if (data.type === 'SERVER_SYNC') {
-        const srv = userServers.find(s => s.id === data.serverId);
-        if (srv) {
-            srv.name = data.newName;
-            srv.icon = data.newIcon;
-            saveUserAccountData();
-            renderServerBar();
-            if (userServers[currentServerIndex].id === data.serverId) {
-                document.getElementById('current-server-title').innerText = srv.name;
+    // 3. Заявка в друзья (Steam ID)
+    else if (data.type === 'FRIEND_REQUEST_SEND') {
+        if (data.targetCode === currentUser.friendCode) {
+            if (!currentUser.friendRequests) currentUser.friendRequests = [];
+            if (!currentUser.friendRequests.some(r => r.fromId === data.fromId)) {
+                currentUser.friendRequests.push(data);
+                saveUserData();
+                playDiscordPing();
+                if (currentView === 'DMS') renderHubContent();
             }
         }
     }
+    // 4. Заявка принята
+    else if (data.type === 'FRIEND_REQUEST_ACCEPTED') {
+        if (data.toId === currentUser.id) {
+            if (!currentUser.friends) currentUser.friends = [];
+            if (!currentUser.friends.some(f => f.id === data.acceptor.id)) {
+                currentUser.friends.push(data.acceptor);
+                saveUserData();
+                if (currentView === 'DMS') { renderDMsList(); renderHubContent(); }
+            }
+        }
+    }
+    // 5. Сообщения (ЛС или Сервер)
+    else if (data.type === 'CHAT_MSG') {
+        // ЛС
+        if (data.isDM) {
+            if (data.targetFriendId === currentUser.id) {
+                const chatKey = `dm_${[currentUser.id, data.senderId].sort().join('_')}`;
+                saveMessage(chatKey, data);
+
+                if (currentView === 'DMS' && activeDmFriend && activeDmFriend.id === data.senderId) {
+                    renderMessage(data);
+                    playDiscordPing();
+                }
+            }
+        }
+        // Сервер
+        else {
+            const chatKey = `srv_${data.serverId}___${data.channelName}`;
+            saveMessage(chatKey, data);
+
+            if (currentView === 'SERVER' && userServers[currentServerIndex] && data.serverId === userServers[currentServerIndex].id && data.channelName === currentChannelName) {
+                renderMessage(data);
+                playDiscordPing();
+            }
+        }
+    }
+    // 6. Звонки
     else if (data.type === 'CALL_OFFER') {
-        document.getElementById('caller-name').innerText = `${data.author} звонит вам`;
-        document.getElementById('incoming-call-modal').style.display = 'block';
+        if (data.targetUserId === currentUser.id) {
+            document.getElementById('caller-name').innerText = `${data.author} звонит вам`;
+            document.getElementById('incoming-call-modal').style.display = 'block';
+        }
     } else if (data.type === 'CALL_ACCEPTED') {
-        startWebRTC(true);
+        if (data.targetUserId === currentUser.id) startWebRTC(true);
     } else if (data.type === 'CALL_ENDED' || data.type === 'CALL_REJECTED') {
         cleanUpCall();
-    } else if (data.type === 'RTC_OFFER') {
+    } else if (data.type === 'RTC_OFFER' && data.targetUserId === currentUser.id) {
         handleRtcOffer(data.sdp);
-    } else if (data.type === 'RTC_ANSWER') {
+    } else if (data.type === 'RTC_ANSWER' && data.targetUserId === currentUser.id) {
         if (peerConnection) peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
-    } else if (data.type === 'RTC_CANDIDATE') {
+    } else if (data.type === 'RTC_CANDIDATE' && data.targetUserId === currentUser.id) {
         if (peerConnection && data.candidate) peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
     }
 }
 
-// Отправка текста
+// Отправка сообщений
 function sendTextMessage() {
     const input = document.getElementById('msg-input');
     const text = input.value.trim();
     if (!text) return;
 
-    const s = userServers[currentServerIndex];
+    const isDM = (currentView === 'DMS');
+    const chatKey = isDM ? getDmKey() : `srv_${userServers[currentServerIndex].id}___${currentChannelName}`;
+
     const msgData = {
         author: currentUser.name,
         color: currentUser.color,
@@ -971,11 +1144,13 @@ function sendTextMessage() {
         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
         content: text,
         msgType: 'text',
-        serverId: s.id,
-        channelName: currentChannelName
+        isDM: isDM,
+        targetFriendId: isDM && activeDmFriend ? activeDmFriend.id : null,
+        serverId: !isDM ? userServers[currentServerIndex].id : null,
+        channelName: !isDM ? currentChannelName : null
     };
 
-    saveMessage(s.id, currentChannelName, msgData);
+    saveMessage(chatKey, msgData);
     sendPacket('CHAT_MSG', msgData);
     renderMessage(msgData);
     input.value = '';
@@ -987,7 +1162,8 @@ async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
 
-    const s = userServers[currentServerIndex];
+    const isDM = (currentView === 'DMS');
+    const chatKey = isDM ? getDmKey() : `srv_${userServers[currentServerIndex].id}___${currentChannelName}`;
     const isImg = file.type.startsWith('image/');
 
     if (isImg) {
@@ -1000,19 +1176,19 @@ async function handleFileUpload(e) {
             });
             const json = await res.json();
             if (json && json.data && (json.data.display_url || json.data.url)) {
-                const imgUrl = json.data.display_url || json.data.url;
                 const msgData = {
                     author: currentUser.name,
                     color: currentUser.color,
                     avatarUrl: currentUser.avatarUrl,
                     time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
                     msgType: 'image',
-                    fileUrl: imgUrl,
-                    serverId: s.id,
-                    channelName: currentChannelName
+                    fileUrl: json.data.display_url || json.data.url,
+                    isDM: isDM,
+                    targetFriendId: isDM && activeDmFriend ? activeDmFriend.id : null,
+                    serverId: !isDM ? userServers[currentServerIndex].id : null,
+                    channelName: !isDM ? currentChannelName : null
                 };
-
-                saveMessage(s.id, currentChannelName, msgData);
+                saveMessage(chatKey, msgData);
                 sendPacket('CHAT_MSG', msgData);
                 renderMessage(msgData);
             }
@@ -1029,11 +1205,12 @@ async function handleFileUpload(e) {
                 msgType: 'file',
                 fileUrl: reader.result,
                 fileName: file.name,
-                serverId: s.id,
-                channelName: currentChannelName
+                isDM: isDM,
+                targetFriendId: isDM && activeDmFriend ? activeDmFriend.id : null,
+                serverId: !isDM ? userServers[currentServerIndex].id : null,
+                channelName: !isDM ? currentChannelName : null
             };
-
-            saveMessage(s.id, currentChannelName, msgData);
+            saveMessage(chatKey, msgData);
             sendPacket('CHAT_MSG', msgData);
             renderMessage(msgData);
         };
@@ -1042,7 +1219,7 @@ async function handleFileUpload(e) {
     e.target.value = '';
 }
 
-// Голосовые сообщения
+// Голосовые сообщения (ГС)
 let mediaRecorder = null, audioChunks = [], isRecording = false;
 async function toggleVoiceRecord() {
     initAudio();
@@ -1057,7 +1234,8 @@ async function toggleVoiceRecord() {
                 const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
                 const reader = new FileReader();
                 reader.onload = () => {
-                    const s = userServers[currentServerIndex];
+                    const isDM = (currentView === 'DMS');
+                    const chatKey = isDM ? getDmKey() : `srv_${userServers[currentServerIndex].id}___${currentChannelName}`;
                     const msgData = {
                         author: currentUser.name,
                         color: currentUser.color,
@@ -1065,11 +1243,12 @@ async function toggleVoiceRecord() {
                         time: `${new Date().getHours().toString().padStart(2,'0')}:${new Date().getMinutes().toString().padStart(2,'0')}`,
                         msgType: 'voice_note',
                         fileUrl: reader.result,
-                        serverId: s.id,
-                        channelName: currentChannelName
+                        isDM: isDM,
+                        targetFriendId: isDM && activeDmFriend ? activeDmFriend.id : null,
+                        serverId: !isDM ? userServers[currentServerIndex].id : null,
+                        channelName: !isDM ? currentChannelName : null
                     };
-
-                    saveMessage(s.id, currentChannelName, msgData);
+                    saveMessage(chatKey, msgData);
                     sendPacket('CHAT_MSG', msgData);
                     renderMessage(msgData);
                 };
@@ -1134,7 +1313,59 @@ function playVoiceNote(btn, audioSrc) {
     audio.onended = () => btn.innerText = '▶';
 }
 
-// Профиль и загрузка аватарки
+// Присутствие онлайн
+function broadcastPresence() {
+    if (!currentUser) return;
+    const curSrvId = currentView === 'SERVER' && userServers[currentServerIndex] ? userServers[currentServerIndex].id : 'dms';
+
+    onlineMembers[currentUser.id] = {
+        id: currentUser.id,
+        name: currentUser.name,
+        avatarUrl: currentUser.avatarUrl,
+        color: currentUser.color,
+        friendCode: currentUser.friendCode,
+        serverId: curSrvId,
+        lastPing: Date.now()
+    };
+
+    sendPacket('PRESENCE', { serverId: curSrvId });
+    if (currentView === 'SERVER') renderMembersList();
+    if (currentView === 'DMS') renderDMsList();
+}
+
+function renderMembersList() {
+    const container = document.getElementById('members-list-container');
+    container.innerHTML = '';
+    const currentSrv = userServers[currentServerIndex];
+    if (!currentSrv) return;
+
+    const now = Date.now();
+    const activeMembers = Object.values(onlineMembers).filter(m => {
+        return m.serverId === currentSrv.id && (now - m.lastPing < 20000);
+    });
+
+    activeMembers.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'member-item';
+        const isOwner = (m.id === currentSrv.ownerId);
+
+        const avatarBg = m.avatarUrl ? `background-image: url('${m.avatarUrl}');` : `background: ${m.color};`;
+        const avatarLetter = !m.avatarUrl ? m.name[0].toUpperCase() : '';
+
+        item.innerHTML = `
+            <div class="avatar" style="${avatarBg}">${avatarLetter}</div>
+            <span class="member-name">
+                ${escapeHtml(m.name)}
+                ${isOwner ? '<span class="owner-crown" title="Создатель сервера">👑</span>' : ''}
+            </span>
+        `;
+        // Клик открывает карточку игрока без сбоев!
+        item.onclick = () => openUserCard(m);
+        container.appendChild(item);
+    });
+}
+
+// Профиль
 function handleAvatarFileSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -1158,6 +1389,8 @@ function handleAvatarFileSelect(e) {
 function updateProfileUI() {
     document.getElementById('my-name').innerText = currentUser.name;
     document.getElementById('edit-profile-name').value = currentUser.name;
+    document.getElementById('my-friend-code-display').value = currentUser.friendCode;
+    document.getElementById('my-code-preview').innerText = `ID: ${currentUser.friendCode}`;
 
     const myAv = document.getElementById('my-avatar');
     const editPreview = document.getElementById('edit-avatar-preview');
@@ -1177,26 +1410,32 @@ function updateProfileUI() {
     }
 }
 
+function copyMyFriendCode() {
+    navigator.clipboard.writeText(currentUser.friendCode);
+    alert('Код дружбы скопирован! Отправь его другу.');
+}
+
 function saveProfile() {
     const newName = document.getElementById('edit-profile-name').value.trim();
     if (newName) currentUser.name = newName;
-    saveUserAccountData();
+    saveUserData();
     updateProfileUI();
     broadcastPresence();
     closeModal('profile-modal');
 }
 
-// Звонки WebRTC
+// Звонки WebRTC (1-на-1 в ЛС!)
 let peerConnection = null, localStream = null;
 const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
 async function initiateCall() {
+    if (!activeDmFriend) return;
     initAudio();
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch(e) { alert('Разрешите микрофон!'); return; }
     document.getElementById('voice-panel').style.display = 'flex';
-    sendPacket('CALL_OFFER');
+    sendPacket('CALL_OFFER', { targetUserId: activeDmFriend.id });
 }
 
 async function answerCall() {
@@ -1206,7 +1445,7 @@ async function answerCall() {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch(e) { rejectCall(); return; }
     document.getElementById('voice-panel').style.display = 'flex';
-    sendPacket('CALL_ACCEPTED');
+    sendPacket('CALL_ACCEPTED', { targetUserId: activeDmFriend ? activeDmFriend.id : null });
 }
 
 function rejectCall() {
@@ -1218,12 +1457,12 @@ async function startWebRTC(isInitiator) {
     peerConnection = new RTCPeerConnection(rtcConfig);
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
     peerConnection.ontrack = e => document.getElementById('remote-audio').srcObject = e.streams[0];
-    peerConnection.onicecandidate = e => { if (e.candidate) sendPacket('RTC_CANDIDATE', { candidate: e.candidate }); };
+    peerConnection.onicecandidate = e => { if (e.candidate) sendPacket('RTC_CANDIDATE', { candidate: e.candidate, targetUserId: activeDmFriend ? activeDmFriend.id : null }); };
 
     if (isInitiator) {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
-        sendPacket('RTC_OFFER', { sdp: offer });
+        sendPacket('RTC_OFFER', { sdp: offer, targetUserId: activeDmFriend ? activeDmFriend.id : null });
     }
 }
 
@@ -1232,7 +1471,7 @@ async function handleRtcOffer(sdp) {
     await peerConnection.setRemoteDescription(new RTCSessionDescription(sdp));
     const ans = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(ans);
-    sendPacket('RTC_ANSWER', { sdp: ans });
+    sendPacket('RTC_ANSWER', { sdp: ans, targetUserId: activeDmFriend ? activeDmFriend.id : null });
 }
 
 function hangUp() {
@@ -1255,6 +1494,7 @@ function toggleMute() {
     }
 }
 
+// Утилиты
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }

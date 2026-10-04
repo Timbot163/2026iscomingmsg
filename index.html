@@ -26,7 +26,7 @@
 
         .app-container { display: flex; width: 100vw; height: 100vh; }
 
-        /* 1. СЕРВЕРЫ */
+        /* 1. ПАНЕЛЬ СЕРВЕРОВ */
         .servers-sidebar {
             width: 72px; background: var(--bg-server); display: flex; flex-direction: column;
             align-items: center; padding: 12px 0; gap: 8px; overflow-y: auto; flex-shrink: 0;
@@ -105,7 +105,7 @@
         .voice-btn.active { background: var(--blurple); }
         .voice-btn.danger { background: var(--red); }
 
-        /* ПРОФИЛЬ */
+        /* ПРОФИЛЬ СНИЗУ */
         .user-footer {
             height: 54px; background: var(--bg-user); display: flex; align-items: center;
             padding: 0 10px; justify-content: space-between; cursor: pointer; transition: background 0.2s;
@@ -122,7 +122,7 @@
         }
 
         /* 3. ЧАТ */
-        .chat-area { flex: 1; background: var(--bg-chat); display: flex; flex-direction: column; min-width: 0; }
+        .chat-area { flex: 1; background: var(--bg-chat); display: flex; flex-direction: column; min-width: 0; position: relative; }
         .chat-header {
             height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
             border-bottom: 1px solid #202225; color: var(--text-header); font-weight: bold;
@@ -191,7 +191,10 @@
             width: 30px; height: 30px; border-radius: 50%; background: var(--blurple); color: #fff; border: none; cursor: pointer; font-size: 12px;
         }
 
-        .chat-input-wrapper { padding: 0 16px 20px 16px; position: relative; }
+        /* ПОЛЕ ВВОДА СООБЩЕНИЯ */
+        .chat-input-wrapper {
+            padding: 0 16px 20px 16px; position: relative; width: 100%;
+        }
         .chat-input-box {
             background: var(--bg-input); border-radius: 8px; padding: 6px 14px; display: flex; align-items: center; gap: 8px;
         }
@@ -207,16 +210,29 @@
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-        /* ПЛАВНЫЕ ВСПЛЫВАЮЩИЕ ПАНЕЛИ СТИКЕРОВ И ГИФОК */
+        /* НАСТОЯЩИЕ ВСПЛЫВАЮЩИЕ ПАНЕЛИ СТИКЕРОВ И ГИФОК НАД КНОПКАМИ */
         .media-popover {
-            position: absolute; bottom: 75px; right: 20px; width: 340px; height: 340px; background: #232428;
-            border: 1px solid #383a40; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            display: flex; flex-direction: column; z-index: 90; padding: 12px;
-            opacity: 0; pointer-events: none; transform: translateY(12px) scale(0.96);
-            transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+            position: absolute;
+            bottom: 70px;
+            right: 16px;
+            width: min(350px, 92vw);
+            height: 330px;
+            background: #232428;
+            border: 1px solid #383a40;
+            border-radius: 10px;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.7);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            padding: 12px;
         }
         .media-popover.active {
-            opacity: 1; pointer-events: auto; transform: translateY(0) scale(1);
+            display: flex !important;
+            animation: popoverFadeIn 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        @keyframes popoverFadeIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.96); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .popover-grid {
             flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 4px;
@@ -251,7 +267,7 @@
         .hub-tab:hover, .hub-tab.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
         .hub-tab.add { background: var(--green); color: #fff; }
 
-        /* ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА (CUBIC-BEZIER) */
+        /* ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(4, 1, 9, 0.75);
@@ -487,7 +503,6 @@
                 <span id="sidebar-header-arrow" style="font-size: 12px; display: none;">▼</span>
             </div>
 
-            <!-- Меню сервера -->
             <div class="dropdown-menu" id="server-dropdown">
                 <div class="dropdown-item" onclick="openInviteModal()"><span>👥 Пригласить людей</span> <span>+</span></div>
                 <div class="dropdown-item" id="menu-create-channel-opt" onclick="openModal('create-channel-modal')"><span>➕ Создать канал</span></div>
@@ -550,29 +565,31 @@
             <div id="chat-conversation-view" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
                 <div class="messages-container" id="messages"></div>
 
-                <!-- ПАНЕЛИ СТИКЕРОВ И ГИФОК С ЗАЩИТОЙ КЛИКА -->
-                <div class="media-popover" id="stickers-popover" onclick="event.stopPropagation()">
-                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;">
-                        <span>СТИКЕРЫ ДИСКОРД</span>
-                        <span style="color:var(--green); cursor:pointer;" onclick="document.getElementById('custom-sticker-uploader').click()">➕ Свой</span>
-                    </div>
-                    <div class="popover-grid" id="stickers-grid"></div>
-                </div>
-
-                <div class="media-popover" id="gifs-popover" onclick="event.stopPropagation()">
-                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px;">ГИФКИ</div>
-                    <input type="text" id="gif-direct-input" placeholder="Вставьте ссылку на любую GIF и нажмите Enter..." style="padding:6px; background:#18191c; border:1px solid #444; border-radius:4px; color:#fff; font-size:12px; outline:none; margin-bottom:8px;" onkeydown="handleCustomGifKey(event)">
-                    <div class="popover-grid" id="gifs-grid"></div>
-                </div>
-
+                <!-- ПОЛЕ ВВОДА СООБЩЕНИЯ + ПАНЕЛИ СТИКЕРОВ И ГИФОК ПРЯМО НАД НИМ -->
                 <div class="chat-input-wrapper">
+                    
+                    <!-- ПАНЕЛЬ СТИКЕРОВ -->
+                    <div class="media-popover" id="stickers-popover" onclick="event.stopPropagation()">
+                        <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;">
+                            <span>СТИКЕРЫ ДИСКОРД</span>
+                            <span style="color:var(--green); cursor:pointer;" onclick="document.getElementById('custom-sticker-uploader').click()">➕ Свой</span>
+                        </div>
+                        <div class="popover-grid" id="stickers-grid"></div>
+                    </div>
+
+                    <!-- ПАНЕЛЬ ГИФОК -->
+                    <div class="media-popover" id="gifs-popover" onclick="event.stopPropagation()">
+                        <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px;">ГИФКИ</div>
+                        <input type="text" id="gif-direct-input" placeholder="Вставьте ссылку на любую GIF и нажмите Enter..." style="padding:6px; background:#18191c; border:1px solid #444; border-radius:4px; color:#fff; font-size:12px; outline:none; margin-bottom:8px;" onkeydown="handleCustomGifKey(event)">
+                        <div class="popover-grid" id="gifs-grid"></div>
+                    </div>
+
                     <div class="chat-input-box">
                         <button type="button" class="input-action-btn" title="Прикрепить фото или файл" onclick="document.getElementById('file-uploader').click()">➕</button>
                         <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
                         
-                        <!-- КНОПКИ СТИКЕРОВ И ГИФОК С БЛОКИРОВКОЙ ВСПЛЫТИЯ (НЕ ЗАКРЫВАЮТСЯ МГНОВЕННО!) -->
-                        <button type="button" class="input-action-btn" title="Стикеры" onclick="togglePopover('stickers-popover', event)">😃</button>
-                        <button type="button" class="input-action-btn" title="Гифки" onclick="togglePopover('gifs-popover', event)">🎞</button>
+                        <button type="button" class="input-action-btn" id="btn-stickers-toggle" title="Стикеры" onclick="togglePopover('stickers-popover', event)">😃</button>
+                        <button type="button" class="input-action-btn" id="btn-gifs-toggle" title="Гифки" onclick="togglePopover('gifs-popover', event)">🎞</button>
                         
                         <button type="button" class="input-action-btn" id="voice-record-btn" title="Записать голосовое сообщение" onclick="toggleVoiceRecord()">🎙</button>
                         <button type="button" class="call-header-btn" style="padding: 6px 12px;" onclick="sendTextMessage()">Отправить</button>
@@ -625,7 +642,7 @@ let onlineMembers = {};
 let hubTabMode = 'all';
 let mqttClient = null;
 
-// НАДЕЖНЫЕ ВСТРОЕННЫЕ СТИКЕРЫ (СВЕРХ-ЛЕГКИЕ SVG/WEBP, РАБОТАЮТ ВЕЗДЕ!)
+// БЕЗОТКАЗНЫЕ ВСТРОЕННЫЕ СТИКЕРЫ (SVG)
 let availableStickers = [
     'https://api.iconify.design/fluent-emoji:fire.svg',
     'https://api.iconify.design/fluent-emoji:crown.svg',
@@ -641,30 +658,30 @@ let availableStickers = [
     'https://api.iconify.design/fluent-emoji:clapping-hands.svg'
 ];
 
-// НАДЕЖНЫЕ ОФИЦИАЛЬНЫЕ GIF БЕЗ БЛОКИРОВОК 403
+// БЕЗОТКАЗНЫЕ GIF (ПРОВЕРЕННЫЕ ССЫЛКИ GIPHY / WIKIMEDIA)
 let availableGifs = [
-    'https://media.tenor.com/2642a8b92b67f6a73baef50294fc99b7/tenor.gif',
-    'https://media.tenor.com/y_KzB9v3vR4AAAAM/cat-dance.gif',
-    'https://media.tenor.com/gK5W4lI4sKkAAAAM/dog-dance.gif',
-    'https://media.tenor.com/Bf06W44rN7IAAAAM/pepe-dance.gif',
-    'https://media.tenor.com/x8v1oNuOmg4AAAAd/rickroll-roll.gif',
-    'https://media.tenor.com/3q1YkKeqPvgAAAAM/anime-dance.gif'
+    'https://media1.giphy.com/media/ICOgUNjpvO0PC/200.gif',
+    'https://media1.giphy.com/media/unQ3IJU2RG7DO/200.gif',
+    'https://media1.giphy.com/media/VbnUQIRNNzrD94VAWd/200.gif',
+    'https://media1.giphy.com/media/blSTtZehjAZ8I/200.gif',
+    'https://media1.giphy.com/media/l41lI4bYmcsPJX9Go/200.gif',
+    'https://media1.giphy.com/media/3o7TKSjRrfIPjeiVyM/200.gif'
 ];
 
-function getChatHistory() { return JSON.parse(localStorage.getItem('dc_v8_chat_history') || '{}'); }
+function getChatHistory() { return JSON.parse(localStorage.getItem('dc_v9_chat_history') || '{}'); }
 function saveMessage(chatKey, msgObj) {
     const history = getChatHistory();
     if (!history[chatKey]) history[chatKey] = [];
     history[chatKey].push(msgObj);
     if (history[chatKey].length > 150) history[chatKey].shift();
-    localStorage.setItem('dc_v8_chat_history', JSON.stringify(history));
+    localStorage.setItem('dc_v9_chat_history', JSON.stringify(history));
 }
 
 // =========================================================================
 //                  АВТОРИЗАЦИЯ
 // =========================================================================
 function checkExistingSession() {
-    const saved = localStorage.getItem('dc_user_account_v8');
+    const saved = localStorage.getItem('dc_user_account_v9');
     if (saved) {
         currentUser = JSON.parse(saved);
         if (!currentUser.friendCode) currentUser.friendCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -709,7 +726,7 @@ function handleAuthSubmit() {
         return;
     }
 
-    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v8') || '{}');
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v9') || '{}');
     const userKey = username.toLowerCase();
 
     if (authMode === 'register') {
@@ -732,9 +749,9 @@ function handleAuthSubmit() {
         };
 
         db[userKey] = newUser;
-        localStorage.setItem('dc_accounts_db_v8', JSON.stringify(db));
+        localStorage.setItem('dc_accounts_db_v9', JSON.stringify(db));
         currentUser = newUser;
-        localStorage.setItem('dc_user_account_v8', JSON.stringify(currentUser));
+        localStorage.setItem('dc_user_account_v9', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initApp();
 
@@ -746,7 +763,7 @@ function handleAuthSubmit() {
             return;
         }
         currentUser = acc;
-        localStorage.setItem('dc_user_account_v8', JSON.stringify(currentUser));
+        localStorage.setItem('dc_user_account_v9', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initApp();
     }
@@ -755,15 +772,15 @@ function handleAuthSubmit() {
 document.getElementById('auth-password').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
 
 function logout() {
-    localStorage.removeItem('dc_user_account_v8');
+    localStorage.removeItem('dc_user_account_v9');
     window.location.reload();
 }
 
 function saveUserData() {
-    localStorage.setItem('dc_user_account_v8', JSON.stringify(currentUser));
-    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v8') || '{}');
+    localStorage.setItem('dc_user_account_v9', JSON.stringify(currentUser));
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v9') || '{}');
     db[currentUser.name.toLowerCase()] = currentUser;
-    localStorage.setItem('dc_accounts_db_v8', JSON.stringify(db));
+    localStorage.setItem('dc_accounts_db_v9', JSON.stringify(db));
 }
 
 function initApp() {
@@ -871,7 +888,7 @@ function applyAvatarCrop() {
 }
 
 // =========================================================================
-//            СТИКЕРЫ И ГИФКИ (ПОЛНОСТЬЮ РАБОЧИЕ!)
+//            СТИКЕРЫ И ГИФКИ
 // =========================================================================
 function buildMediaPopovers() {
     const stGrid = document.getElementById('stickers-grid');
@@ -879,7 +896,7 @@ function buildMediaPopovers() {
     availableStickers.forEach(url => {
         const item = document.createElement('div');
         item.className = 'popover-item';
-        item.innerHTML = `<img src="${url}" style="width:50px; height:50px; object-fit:contain;" referrerpolicy="no-referrer">`;
+        item.innerHTML = `<img src="${url}" style="width:48px; height:48px; object-fit:contain;">`;
         item.onclick = (e) => {
             e.stopPropagation();
             sendSticker(url);
@@ -892,7 +909,7 @@ function buildMediaPopovers() {
     availableGifs.forEach(url => {
         const item = document.createElement('div');
         item.className = 'popover-item';
-        item.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; border-radius:4px;" referrerpolicy="no-referrer">`;
+        item.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; border-radius:4px;">`;
         item.onclick = (e) => {
             e.stopPropagation();
             sendGif(url);
@@ -901,7 +918,6 @@ function buildMediaPopovers() {
     });
 }
 
-// ПЕРЕКЛЮЧЕНИЕ ПАНЕЛЕЙ БЕЗ САМОПРОИЗВОЛЬНОГО ЗАКРЫТИЯ!
 function togglePopover(id, event) {
     if (event) {
         event.preventDefault();
@@ -1446,13 +1462,18 @@ function handleSidebarHeaderClick() {
         menu.classList.toggle('active');
     }
 }
-window.addEventListener('click', e => {
+
+// ЗАКРЫТИЕ ВСПЛЫВАЮЩИХ ПАНЕЛЕЙ ПРИ КЛИКЕ СНАРУЖИ
+document.addEventListener('click', e => {
     if (!e.target.closest('#sidebar-header-box') && !e.target.closest('#server-dropdown')) {
-        document.getElementById('server-dropdown').classList.remove('active');
+        const sDrop = document.getElementById('server-dropdown');
+        if (sDrop) sDrop.classList.remove('active');
     }
-    if (!e.target.closest('.media-popover') && !e.target.closest('.input-action-btn')) {
-        document.getElementById('stickers-popover').classList.remove('active');
-        document.getElementById('gifs-popover').classList.remove('active');
+    if (!e.target.closest('.media-popover') && !e.target.closest('#btn-stickers-toggle') && !e.target.closest('#btn-gifs-toggle')) {
+        const sPop = document.getElementById('stickers-popover');
+        const gPop = document.getElementById('gifs-popover');
+        if (sPop) sPop.classList.remove('active');
+        if (gPop) gPop.classList.remove('active');
     }
 });
 
@@ -1787,9 +1808,9 @@ function renderMessage(data, scroll = true) {
     } else if (data.msgType === 'image') {
         contentHtml = `<img src="${data.fileUrl}" class="chat-image" onclick="window.open('${data.fileUrl}')">`;
     } else if (data.msgType === 'sticker') {
-        contentHtml = `<img src="${data.fileUrl}" class="chat-sticker" referrerpolicy="no-referrer">`;
+        contentHtml = `<img src="${data.fileUrl}" class="chat-sticker">`;
     } else if (data.msgType === 'gif') {
-        contentHtml = `<img src="${data.fileUrl}" class="chat-gif" referrerpolicy="no-referrer">`;
+        contentHtml = `<img src="${data.fileUrl}" class="chat-gif">`;
     } else if (data.msgType === 'file') {
         contentHtml = `
             <div class="file-card">
@@ -2061,7 +2082,7 @@ function toggleMute() {
     }
 }
 
-// ПЛАВНОЕ ОТКРЫТИЕ И ЗАКРЫТИЕ МОДАЛОК
+// ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА
 function openModal(id) {
     const m = document.getElementById(id);
     if (m) m.classList.add('active');

@@ -26,7 +26,7 @@
 
         .app-container { display: flex; width: 100vw; height: 100vh; }
 
-        /* 1. ПАНЕЛЬ СЕРВЕРОВ */
+        /* 1. СЕРВЕРЫ */
         .servers-sidebar {
             width: 72px; background: var(--bg-server); display: flex; flex-direction: column;
             align-items: center; padding: 12px 0; gap: 8px; overflow-y: auto; flex-shrink: 0;
@@ -73,7 +73,7 @@
         }
         .channel-item:hover, .channel-item.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
 
-        /* ВЫПАДАЮЩЕЕ МЕНЮ СЕРВЕРА С ПЛАВНОЙ АНИМАЦИЕЙ */
+        /* ВЫПАДАЮЩЕЕ МЕНЮ СЕРВЕРА */
         .dropdown-menu {
             position: absolute; top: 48px; left: 10px; width: 220px; background: #111214;
             border-radius: 8px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 80;
@@ -105,7 +105,7 @@
         .voice-btn.active { background: var(--blurple); }
         .voice-btn.danger { background: var(--red); }
 
-        /* ПРОФИЛЬ СНИЗУ */
+        /* ПРОФИЛЬ */
         .user-footer {
             height: 54px; background: var(--bg-user); display: flex; align-items: center;
             padding: 0 10px; justify-content: space-between; cursor: pointer; transition: background 0.2s;
@@ -168,7 +168,7 @@
         }
         .chat-image:hover { transform: scale(1.02); }
         .chat-sticker {
-            width: 130px; height: 130px; object-fit: contain; margin-top: 5px; cursor: pointer; transition: transform 0.15s;
+            width: 120px; height: 120px; object-fit: contain; margin-top: 5px; cursor: pointer; transition: transform 0.15s;
         }
         .chat-sticker:hover { transform: scale(1.08); }
         .chat-gif {
@@ -223,7 +223,7 @@
         }
         .popover-item {
             width: 100%; height: 85px; object-fit: contain; border-radius: 6px; cursor: pointer; background: #1e1f22;
-            padding: 6px; transition: transform 0.15s, background 0.15s;
+            padding: 6px; transition: transform 0.15s, background 0.15s; display: flex; align-items: center; justify-content: center;
         }
         .popover-item:hover { transform: scale(1.08); background: #2b2d31; }
 
@@ -355,7 +355,7 @@
     </div>
 
     <!-- 3. АВТОРИЗАЦИЯ -->
-    <div id="auth-modal" class="modal-overlay">
+    <div id="auth-modal" class="modal-overlay" style="display: none;">
         <div class="modal-box">
             <h2 style="margin-bottom: 4px;">Discord Web</h2>
             <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Релиз 2026iscoming</div>
@@ -463,7 +463,7 @@
     <div id="incoming-call-modal">
         <div style="font-weight: bold; color: #fff;">Входящий звонок...</div>
         <div id="caller-name" style="color: var(--blurple); margin: 6px 0;">Друг звонит</div>
-        <div style="display: flex; gap: 8px; justify-content: center;">
+        <div style="display: flex; gap: 8px; justify-content: center; margin-top: 10px;">
             <button class="call-header-btn" onclick="answerCall()">✔ Ответить</button>
             <button class="voice-btn danger" onclick="rejectCall()">✖ Сбросить</button>
         </div>
@@ -550,31 +550,32 @@
             <div id="chat-conversation-view" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
                 <div class="messages-container" id="messages"></div>
 
-                <!-- ПАНЕЛИ СТИКЕРОВ И ГИФОК С ПЛАВНЫМ ВЫПЛЫВАНИЕМ -->
-                <div class="media-popover" id="stickers-popover">
+                <!-- ПАНЕЛИ СТИКЕРОВ И ГИФОК С ЗАЩИТОЙ КЛИКА -->
+                <div class="media-popover" id="stickers-popover" onclick="event.stopPropagation()">
                     <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;">
-                        <span>СТИКЕРЫ</span>
-                        <span style="color:var(--green); cursor:pointer;" onclick="document.getElementById('custom-sticker-uploader').click()">➕ Создать свой</span>
+                        <span>СТИКЕРЫ ДИСКОРД</span>
+                        <span style="color:var(--green); cursor:pointer;" onclick="document.getElementById('custom-sticker-uploader').click()">➕ Свой</span>
                     </div>
                     <div class="popover-grid" id="stickers-grid"></div>
                 </div>
 
-                <div class="media-popover" id="gifs-popover">
+                <div class="media-popover" id="gifs-popover" onclick="event.stopPropagation()">
                     <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px;">ГИФКИ</div>
-                    <input type="text" id="gif-direct-input" placeholder="Вставьте ссылку на любую GIF..." style="padding:6px; background:#18191c; border:1px solid #444; border-radius:4px; color:#fff; font-size:12px; outline:none; margin-bottom:8px;" onkeydown="handleCustomGifKey(event)">
+                    <input type="text" id="gif-direct-input" placeholder="Вставьте ссылку на любую GIF и нажмите Enter..." style="padding:6px; background:#18191c; border:1px solid #444; border-radius:4px; color:#fff; font-size:12px; outline:none; margin-bottom:8px;" onkeydown="handleCustomGifKey(event)">
                     <div class="popover-grid" id="gifs-grid"></div>
                 </div>
 
                 <div class="chat-input-wrapper">
                     <div class="chat-input-box">
-                        <button class="input-action-btn" title="Прикрепить фото или файл" onclick="document.getElementById('file-uploader').click()">➕</button>
+                        <button type="button" class="input-action-btn" title="Прикрепить фото или файл" onclick="document.getElementById('file-uploader').click()">➕</button>
                         <input type="text" id="msg-input" placeholder="Написать сообщение..." autocomplete="off">
                         
-                        <button class="input-action-btn" title="Стикеры" onclick="togglePopover('stickers-popover')">😃</button>
-                        <button class="input-action-btn" title="Гифки" onclick="togglePopover('gifs-popover')">🎞</button>
+                        <!-- КНОПКИ СТИКЕРОВ И ГИФОК С БЛОКИРОВКОЙ ВСПЛЫТИЯ (НЕ ЗАКРЫВАЮТСЯ МГНОВЕННО!) -->
+                        <button type="button" class="input-action-btn" title="Стикеры" onclick="togglePopover('stickers-popover', event)">😃</button>
+                        <button type="button" class="input-action-btn" title="Гифки" onclick="togglePopover('gifs-popover', event)">🎞</button>
                         
-                        <button class="input-action-btn" id="voice-record-btn" title="Записать голосовое сообщение" onclick="toggleVoiceRecord()">🎙</button>
-                        <button class="call-header-btn" style="padding: 6px 12px;" onclick="sendTextMessage()">Отправить</button>
+                        <button type="button" class="input-action-btn" id="voice-record-btn" title="Записать голосовое сообщение" onclick="toggleVoiceRecord()">🎙</button>
+                        <button type="button" class="call-header-btn" style="padding: 6px 12px;" onclick="sendTextMessage()">Отправить</button>
                     </div>
                 </div>
             </div>
@@ -624,27 +625,30 @@ let onlineMembers = {};
 let hubTabMode = 'all';
 let mqttClient = null;
 
-// БЕЗОТКАЗНЫЕ 3D СТИКЕРЫ (MICROSOFT FLUENT) - ЗАГРУЖАЮТСЯ ВСЕГДА!
+// НАДЕЖНЫЕ ВСТРОЕННЫЕ СТИКЕРЫ (СВЕРХ-ЛЕГКИЕ SVG/WEBP, РАБОТАЮТ ВЕЗДЕ!)
 let availableStickers = [
-    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Grinning%20Face%20with%20Big%20Eyes.png',
-    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Fire.png',
-    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Partying%20Face.png',
-    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Sunglasses.png',
-    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Rocket.png',
-    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Crown.png',
-    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Cat%20with%20Wry%20Smile.png',
-    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Robot.png',
-    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Ghost.png'
+    'https://api.iconify.design/fluent-emoji:fire.svg',
+    'https://api.iconify.design/fluent-emoji:crown.svg',
+    'https://api.iconify.design/fluent-emoji:rocket.svg',
+    'https://api.iconify.design/fluent-emoji:partying-face.svg',
+    'https://api.iconify.design/fluent-emoji:smiling-face-with-sunglasses.svg',
+    'https://api.iconify.design/fluent-emoji:cat-with-wry-smile.svg',
+    'https://api.iconify.design/fluent-emoji:robot.svg',
+    'https://api.iconify.design/fluent-emoji:ghost.svg',
+    'https://api.iconify.design/fluent-emoji:pizza.svg',
+    'https://api.iconify.design/fluent-emoji:gem-stone.svg',
+    'https://api.iconify.design/fluent-emoji:glowing-star.svg',
+    'https://api.iconify.design/fluent-emoji:clapping-hands.svg'
 ];
 
-// ПРЯМЫЕ GIF (БЕЗ 403 БЛОКИРОВОК)
+// НАДЕЖНЫЕ ОФИЦИАЛЬНЫЕ GIF БЕЗ БЛОКИРОВОК 403
 let availableGifs = [
-    'https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif',
     'https://media.tenor.com/2642a8b92b67f6a73baef50294fc99b7/tenor.gif',
     'https://media.tenor.com/y_KzB9v3vR4AAAAM/cat-dance.gif',
     'https://media.tenor.com/gK5W4lI4sKkAAAAM/dog-dance.gif',
     'https://media.tenor.com/Bf06W44rN7IAAAAM/pepe-dance.gif',
-    'https://media.tenor.com/x8v1oNuOmg4AAAAd/rickroll-roll.gif'
+    'https://media.tenor.com/x8v1oNuOmg4AAAAd/rickroll-roll.gif',
+    'https://media.tenor.com/3q1YkKeqPvgAAAAM/anime-dance.gif'
 ];
 
 function getChatHistory() { return JSON.parse(localStorage.getItem('dc_v8_chat_history') || '{}'); }
@@ -867,37 +871,46 @@ function applyAvatarCrop() {
 }
 
 // =========================================================================
-//            СТИКЕРЫ И ГИФКИ С ОБХОДОМ БЛОКИРОВОК
+//            СТИКЕРЫ И ГИФКИ (ПОЛНОСТЬЮ РАБОЧИЕ!)
 // =========================================================================
 function buildMediaPopovers() {
     const stGrid = document.getElementById('stickers-grid');
     stGrid.innerHTML = '';
     availableStickers.forEach(url => {
-        const img = document.createElement('img');
-        img.className = 'popover-item';
-        img.src = url;
-        img.setAttribute('referrerpolicy', 'no-referrer');
-        img.onclick = () => sendSticker(url);
-        stGrid.appendChild(img);
+        const item = document.createElement('div');
+        item.className = 'popover-item';
+        item.innerHTML = `<img src="${url}" style="width:50px; height:50px; object-fit:contain;" referrerpolicy="no-referrer">`;
+        item.onclick = (e) => {
+            e.stopPropagation();
+            sendSticker(url);
+        };
+        stGrid.appendChild(item);
     });
 
     const gifGrid = document.getElementById('gifs-grid');
     gifGrid.innerHTML = '';
     availableGifs.forEach(url => {
-        const img = document.createElement('img');
-        img.className = 'popover-item';
-        img.src = url;
-        img.setAttribute('referrerpolicy', 'no-referrer');
-        img.onclick = () => sendGif(url);
-        gifGrid.appendChild(img);
+        const item = document.createElement('div');
+        item.className = 'popover-item';
+        item.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; border-radius:4px;" referrerpolicy="no-referrer">`;
+        item.onclick = (e) => {
+            e.stopPropagation();
+            sendGif(url);
+        };
+        gifGrid.appendChild(item);
     });
 }
 
-function togglePopover(id) {
-    const el = document.getElementById(id);
+// ПЕРЕКЛЮЧЕНИЕ ПАНЕЛЕЙ БЕЗ САМОПРОИЗВОЛЬНОГО ЗАКРЫТИЯ!
+function togglePopover(id, event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const target = document.getElementById(id);
     const otherId = id === 'stickers-popover' ? 'gifs-popover' : 'stickers-popover';
     document.getElementById(otherId).classList.remove('active');
-    el.classList.toggle('active');
+    target.classList.toggle('active');
 }
 
 function sendSticker(url) {
@@ -1716,7 +1729,7 @@ async function handleFileUpload(e) {
     e.target.value = '';
 }
 
-// Голосовые сообщения
+// Голосовые сообщения (ГС)
 let mediaRecorder = null, audioChunks = [], isRecording = false;
 async function toggleVoiceRecord() {
     initAudio();
@@ -2048,7 +2061,7 @@ function toggleMute() {
     }
 }
 
-// ПЛАВНОЕ ОТКРЫТИЕ И ЗАКРЫТИЕ МОДАЛЬНЫХ ОКОН
+// ПЛАВНОЕ ОТКРЫТИЕ И ЗАКРЫТИЕ МОДАЛОК
 function openModal(id) {
     const m = document.getElementById(id);
     if (m) m.classList.add('active');

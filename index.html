@@ -34,9 +34,9 @@
         .server-icon {
             width: 48px; height: 48px; background: var(--bg-chat); border-radius: 50%;
             display: flex; align-items: center; justify-content: center; font-weight: bold;
-            font-size: 16px; cursor: pointer; transition: all 0.2s; color: #fff; position: relative;
+            font-size: 16px; cursor: pointer; transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); color: #fff; position: relative;
         }
-        .server-icon:hover, .server-icon.active { border-radius: 16px; background: var(--blurple); }
+        .server-icon:hover, .server-icon.active { border-radius: 16px; background: var(--blurple); transform: translateY(-2px); }
         .server-icon.add-btn { color: var(--green); border: 1px dashed var(--green); background: transparent; }
         .server-icon.add-btn:hover { background: var(--green); color: #fff; border-radius: 16px; }
 
@@ -47,6 +47,7 @@
         .sidebar-header {
             height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between;
             font-weight: bold; color: var(--text-header); border-bottom: 1px solid #1f2023; cursor: pointer; position: relative;
+            transition: background 0.2s;
         }
         .sidebar-header:hover { background: rgba(255,255,255,0.03); }
 
@@ -57,8 +58,9 @@
         }
 
         .dm-item {
-            display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 4px;
-            color: var(--text-muted); cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px;
+            color: var(--text-muted); cursor: pointer; font-size: 14px; position: relative;
+            transition: all 0.18s ease;
         }
         .dm-item:hover, .dm-item.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
         .dm-info { display: flex; flex-direction: column; overflow: hidden; }
@@ -66,30 +68,38 @@
         .dm-status { font-size: 11px; color: var(--text-muted); }
 
         .channel-item {
-            display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 4px;
-            color: var(--text-muted); cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 6px;
+            color: var(--text-muted); cursor: pointer; font-size: 14px; transition: all 0.18s ease;
         }
         .channel-item:hover, .channel-item.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
 
-        /* ВЫПАДАЮЩЕЕ МЕНЮ */
+        /* ВЫПАДАЮЩЕЕ МЕНЮ СЕРВЕРА С ПЛАВНОЙ АНИМАЦИЕЙ */
         .dropdown-menu {
             position: absolute; top: 48px; left: 10px; width: 220px; background: #111214;
-            border-radius: 6px; padding: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 80; display: none; flex-direction: column; gap: 2px;
+            border-radius: 8px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); z-index: 80;
+            display: flex; flex-direction: column; gap: 2px;
+            opacity: 0; pointer-events: none; transform: translateY(-8px) scale(0.95);
+            transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .dropdown-menu.active {
+            opacity: 1; pointer-events: auto; transform: translateY(0) scale(1);
         }
         .dropdown-item {
-            padding: 8px 10px; border-radius: 4px; font-size: 13px; color: var(--text-normal); cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+            padding: 8px 10px; border-radius: 4px; font-size: 13px; color: var(--text-normal); cursor: pointer;
+            display: flex; align-items: center; justify-content: space-between; transition: background 0.15s;
         }
         .dropdown-item:hover { background: var(--blurple); color: #fff; }
         .dropdown-item.danger:hover { background: var(--red); color: #fff; }
 
-        /* ГОЛОСОВОЙ БЛОК + ДЕМОНСТРАЦИЯ ЭКРАНА */
+        /* ГОЛОСОВОЙ БЛОК */
         #voice-panel {
             background: #111214; border-bottom: 1px solid #232428; padding: 10px 12px; display: none; flex-direction: column; gap: 8px;
         }
         .voice-status { color: var(--green); font-weight: bold; font-size: 12px; display: flex; align-items: center; gap: 6px; }
         .voice-controls-row { display: flex; gap: 6px; }
         .voice-btn {
-            background: rgba(255,255,255,0.08); border: none; color: #fff; padding: 6px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; flex: 1; text-align: center;
+            background: rgba(255,255,255,0.08); border: none; color: #fff; padding: 6px 8px; border-radius: 4px;
+            cursor: pointer; font-size: 11px; flex: 1; text-align: center; transition: all 0.2s;
         }
         .voice-btn:hover { background: rgba(255,255,255,0.15); }
         .voice-btn.active { background: var(--blurple); }
@@ -98,7 +108,7 @@
         /* ПРОФИЛЬ СНИЗУ */
         .user-footer {
             height: 54px; background: var(--bg-user); display: flex; align-items: center;
-            padding: 0 10px; justify-content: space-between; cursor: pointer;
+            padding: 0 10px; justify-content: space-between; cursor: pointer; transition: background 0.2s;
         }
         .user-footer:hover { background: #282a2e; }
         .avatar {
@@ -120,21 +130,23 @@
         .header-actions-group { display: flex; align-items: center; gap: 10px; }
 
         .release-badge {
-            font-size: 11px; padding: 3px 8px; border-radius: 12px; background: linear-gradient(135deg, #7b2cbf, #f72585);
-            color: #fff; font-weight: bold; box-shadow: 0 0 10px rgba(247, 37, 133, 0.4);
+            font-size: 11px; padding: 4px 10px; border-radius: 12px; background: linear-gradient(135deg, #7b2cbf, #f72585);
+            color: #fff; font-weight: bold; box-shadow: 0 0 12px rgba(247, 37, 133, 0.4);
         }
         .btn-plus-features {
             background: rgba(255,255,255,0.06); border: 1px solid var(--blurple); color: var(--text-normal);
-            padding: 5px 10px; border-radius: 14px; font-size: 12px; cursor: pointer; font-weight: bold;
+            padding: 6px 12px; border-radius: 14px; font-size: 12px; cursor: pointer; font-weight: bold;
+            transition: all 0.2s;
         }
-        .btn-plus-features:hover { background: var(--blurple); color: #fff; }
+        .btn-plus-features:hover { background: var(--blurple); color: #fff; transform: translateY(-1px); }
 
         .call-header-btn {
             background: var(--green); color: #fff; border: none; padding: 6px 14px;
             border-radius: 4px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 6px;
+            transition: all 0.2s;
         }
+        .call-header-btn:hover { background: #1e8e4e; }
 
-        /* ОКНО ДЕМОНСТРАЦИИ ЭКРАНА (СТРИМ) */
         #screen-share-stage {
             display: none; background: #000; width: 100%; height: 280px; position: relative; border-bottom: 2px solid var(--blurple);
         }
@@ -152,11 +164,13 @@
 
         .chat-image {
             max-width: 360px; max-height: 320px; border-radius: 8px; margin-top: 5px; cursor: pointer;
-            border: 1px solid #444; display: block; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border: 1px solid #444; display: block; box-shadow: 0 2px 10px rgba(0,0,0,0.3); transition: transform 0.2s;
         }
+        .chat-image:hover { transform: scale(1.02); }
         .chat-sticker {
-            width: 140px; height: 140px; object-fit: contain; margin-top: 5px; cursor: pointer;
+            width: 130px; height: 130px; object-fit: contain; margin-top: 5px; cursor: pointer; transition: transform 0.15s;
         }
+        .chat-sticker:hover { transform: scale(1.08); }
         .chat-gif {
             max-width: 300px; max-height: 220px; border-radius: 8px; margin-top: 5px;
         }
@@ -177,7 +191,6 @@
             width: 30px; height: 30px; border-radius: 50%; background: var(--blurple); color: #fff; border: none; cursor: pointer; font-size: 12px;
         }
 
-        /* ПАНЕЛЬ ВВОДА */
         .chat-input-wrapper { padding: 0 16px 20px 16px; position: relative; }
         .chat-input-box {
             background: var(--bg-input); border-radius: 8px; padding: 6px 14px; display: flex; align-items: center; gap: 8px;
@@ -186,27 +199,33 @@
             flex: 1; background: transparent; border: none; outline: none; color: var(--text-normal); font-size: 15px; padding: 6px 0;
         }
         .input-action-btn {
-            background: transparent; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 4px; border-radius: 4px;
+            background: transparent; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 5px; border-radius: 6px;
+            transition: all 0.18s;
         }
-        .input-action-btn:hover { color: #fff; background: rgba(255,255,255,0.06); }
+        .input-action-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
         .input-action-btn.recording { color: var(--red); animation: pulse 1s infinite; }
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-        /* ВСПЛЫВАЮЩИЕ ПАНЕЛИ СТИКЕРОВ И ГИФОК */
+        /* ПЛАВНЫЕ ВСПЛЫВАЮЩИЕ ПАНЕЛИ СТИКЕРОВ И ГИФОК */
         .media-popover {
-            position: absolute; bottom: 75px; right: 20px; width: 340px; height: 300px; background: #232428;
-            border: 1px solid #383a40; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); display: none;
-            flex-direction: column; z-index: 90; padding: 10px;
+            position: absolute; bottom: 75px; right: 20px; width: 340px; height: 340px; background: #232428;
+            border: 1px solid #383a40; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            display: flex; flex-direction: column; z-index: 90; padding: 12px;
+            opacity: 0; pointer-events: none; transform: translateY(12px) scale(0.96);
+            transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .media-popover.active {
+            opacity: 1; pointer-events: auto; transform: translateY(0) scale(1);
         }
         .popover-grid {
             flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 4px;
         }
         .popover-item {
-            width: 100%; height: 80px; object-fit: cover; border-radius: 6px; cursor: pointer; background: #18191c;
-            display: flex; align-items: center; justify-content: center; font-size: 32px; transition: transform 0.15s;
+            width: 100%; height: 85px; object-fit: contain; border-radius: 6px; cursor: pointer; background: #1e1f22;
+            padding: 6px; transition: transform 0.15s, background 0.15s;
         }
-        .popover-item:hover { transform: scale(1.08); background: #313338; }
+        .popover-item:hover { transform: scale(1.08); background: #2b2d31; }
 
         /* 4. СПИСОК УЧАСТНИКОВ */
         .members-sidebar {
@@ -215,6 +234,7 @@
         }
         .member-item {
             display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 4px; cursor: pointer;
+            transition: background 0.15s;
         }
         .member-item:hover { background: rgba(255,255,255,0.05); }
         .member-name { font-size: 14px; color: var(--text-normal); font-weight: 500; display: flex; align-items: center; gap: 6px; }
@@ -226,33 +246,51 @@
         }
         .hub-tab {
             padding: 6px 12px; border-radius: 4px; font-size: 14px; font-weight: bold; color: var(--text-muted); cursor: pointer;
+            transition: all 0.18s;
         }
         .hub-tab:hover, .hub-tab.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
         .hub-tab.add { background: var(--green); color: #fff; }
 
-        /* МОДАЛКИ */
+        /* ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА (CUBIC-BEZIER) */
         .modal-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 100;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(4, 1, 9, 0.75);
+            backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center; z-index: 200;
+            opacity: 0; pointer-events: none;
+            transition: opacity 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .modal-overlay.active {
+            opacity: 1; pointer-events: auto;
         }
         .modal-box {
-            background: var(--bg-channels); padding: 24px; border-radius: 8px; width: 380px; text-align: center; color: #fff;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.7); max-height: 90vh; overflow-y: auto;
+            background: var(--bg-channels); padding: 24px; border-radius: 12px; width: 380px; text-align: center; color: #fff;
+            box-shadow: 0 16px 45px rgba(0,0,0,0.7); max-height: 90vh; overflow-y: auto;
+            transform: scale(0.92) translateY(12px);
+            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .modal-overlay.active .modal-box {
+            transform: scale(1) translateY(0);
         }
         .modal-box input {
-            width: 100%; padding: 11px; margin: 8px 0; background: var(--bg-input); border: 1px solid #444; color: #fff; border-radius: 4px; outline: none; font-size: 14px;
+            width: 100%; padding: 11px; margin: 8px 0; background: var(--bg-input); border: 1px solid #444; color: #fff; border-radius: 6px; outline: none; font-size: 14px;
+            transition: border-color 0.2s;
         }
         .modal-box input:focus { border-color: var(--blurple); }
         .modal-tabs { display: flex; border-bottom: 1px solid #444; margin-bottom: 12px; }
-        .modal-tab { flex: 1; padding: 8px; cursor: pointer; color: var(--text-muted); font-weight: bold; }
+        .modal-tab { flex: 1; padding: 8px; cursor: pointer; color: var(--text-muted); font-weight: bold; transition: color 0.18s; }
         .modal-tab.active { color: var(--text-header); border-bottom: 2px solid var(--blurple); }
 
         #incoming-call-modal {
-            display: none; position: absolute; top: 20px; right: 20px; background: var(--bg-channels);
+            display: flex; position: absolute; top: 20px; right: 20px; background: var(--bg-channels);
             border: 2px solid var(--blurple); padding: 16px; border-radius: 8px; z-index: 200; text-align: center;
+            opacity: 0; pointer-events: none; transform: translateY(-15px);
+            transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        #incoming-call-modal.active {
+            opacity: 1; pointer-events: auto; transform: translateY(0);
         }
 
-        /* КАНВАС ДЛЯ КАДРИРОВАНИЯ АВАТАРКИ */
         #crop-canvas {
             border: 2px dashed var(--blurple); border-radius: 8px; cursor: grab; background: #000;
         }
@@ -262,7 +300,6 @@
 </head>
 <body>
 
-    <!-- Динамик звонка (с принудительным звуком) -->
     <audio id="remote-audio" autoplay></audio>
     <input type="file" id="file-uploader" style="display: none;" onchange="handleFileUpload(event)">
     <input type="file" id="avatar-uploader" accept="image/*" style="display: none;" onchange="startAvatarCrop(event)">
@@ -295,7 +332,7 @@
         </div>
     </div>
 
-    <!-- 2. МОДАЛКА КАДРИРОВАНИЯ АВАТАРКИ (ВЫБОР ЦЕНТРА / ЗУМА) -->
+    <!-- 2. КАДРИРОВАНИЕ АВАТАРКИ -->
     <div id="crop-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>Кадрирование аватарки</h3>
@@ -317,8 +354,8 @@
         </div>
     </div>
 
-    <!-- 3. МОДАЛКА АВТОРИЗАЦИИ -->
-    <div id="auth-modal" class="modal-overlay" style="display: none;">
+    <!-- 3. АВТОРИЗАЦИЯ -->
+    <div id="auth-modal" class="modal-overlay">
         <div class="modal-box">
             <h2 style="margin-bottom: 4px;">Discord Web</h2>
             <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Релиз 2026iscoming</div>
@@ -353,7 +390,7 @@
         </div>
     </div>
 
-    <!-- 5. МОДАЛКА ДОБАВЛЕНИЯ СЕРВЕРА -->
+    <!-- 5. ДОБАВЛЕНИЕ СЕРВЕРА -->
     <div id="add-server-modal" class="modal-overlay">
         <div class="modal-box">
             <div class="modal-tabs">
@@ -375,7 +412,7 @@
         </div>
     </div>
 
-    <!-- 6. МОДАЛКА ИНВАЙТА СЕРВЕРА -->
+    <!-- 6. ИНВАЙТ СЕРВЕРА -->
     <div id="invite-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>Пригласить друзей</h3>
@@ -386,7 +423,7 @@
         </div>
     </div>
 
-    <!-- 7. МОДАЛКА СОЗДАНИЯ КАНАЛА -->
+    <!-- 7. СОЗДАНИЕ КАНАЛА -->
     <div id="create-channel-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>Новый канал</h3>
@@ -398,7 +435,7 @@
         </div>
     </div>
 
-    <!-- 8. МОДАЛКА ПРОФИЛЯ -->
+    <!-- 8. НАСТРОЙКИ ПРОФИЛЯ -->
     <div id="profile-modal" class="modal-overlay">
         <div class="modal-box">
             <h3>Настройки профиля</h3>
@@ -459,7 +496,7 @@
 
             <div class="sidebar-list" id="sidebar-content-list"></div>
 
-            <!-- БЛОК ЗВОНКА И СТРИМА ЭКРАНА -->
+            <!-- БЛОК ЗВОНКА И СТРИМА -->
             <div id="voice-panel">
                 <div class="voice-status"><span>🟢</span> <span id="voice-status-text">Голос подключен</span></div>
                 <div class="voice-controls-row">
@@ -494,7 +531,7 @@
                 </div>
             </div>
 
-            <!-- Экран стрима (демонстрации) -->
+            <!-- Стрим экрана -->
             <div id="screen-share-stage">
                 <video id="remote-screen-video" autoplay playsinline></video>
             </div>
@@ -509,13 +546,13 @@
                 <div id="hub-content" style="flex: 1; padding: 20px; overflow-y: auto;"></div>
             </div>
 
-            <!-- Окно чата -->
+            <!-- Чат -->
             <div id="chat-conversation-view" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
                 <div class="messages-container" id="messages"></div>
 
-                <!-- ВСПЛЫВАЮЩИЕ СТИКЕРЫ И ГИФКИ -->
+                <!-- ПАНЕЛИ СТИКЕРОВ И ГИФОК С ПЛАВНЫМ ВЫПЛЫВАНИЕМ -->
                 <div class="media-popover" id="stickers-popover">
-                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; display:flex; justify-content:space-between;">
+                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;">
                         <span>СТИКЕРЫ</span>
                         <span style="color:var(--green); cursor:pointer;" onclick="document.getElementById('custom-sticker-uploader').click()">➕ Создать свой</span>
                     </div>
@@ -523,7 +560,8 @@
                 </div>
 
                 <div class="media-popover" id="gifs-popover">
-                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px;">ГИФКИ ДИСКОРД</div>
+                    <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px;">ГИФКИ</div>
+                    <input type="text" id="gif-direct-input" placeholder="Вставьте ссылку на любую GIF..." style="padding:6px; background:#18191c; border:1px solid #444; border-radius:4px; color:#fff; font-size:12px; outline:none; margin-bottom:8px;" onkeydown="handleCustomGifKey(event)">
                     <div class="popover-grid" id="gifs-grid"></div>
                 </div>
 
@@ -586,40 +624,43 @@ let onlineMembers = {};
 let hubTabMode = 'all';
 let mqttClient = null;
 
-// Встроенные стикеры
+// БЕЗОТКАЗНЫЕ 3D СТИКЕРЫ (MICROSOFT FLUENT) - ЗАГРУЖАЮТСЯ ВСЕГДА!
 let availableStickers = [
-    'https://cdn-icons-png.flaticon.com/512/9437/9437513.png',
-    'https://cdn-icons-png.flaticon.com/512/9437/9437502.png',
-    'https://cdn-icons-png.flaticon.com/512/4712/4712109.png',
-    'https://cdn-icons-png.flaticon.com/512/4712/4712076.png',
-    'https://cdn-icons-png.flaticon.com/512/4712/4712139.png',
-    'https://cdn-icons-png.flaticon.com/512/2584/2584606.png'
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Grinning%20Face%20with%20Big%20Eyes.png',
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Fire.png',
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Partying%20Face.png',
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Sunglasses.png',
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Rocket.png',
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Crown.png',
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Cat%20with%20Wry%20Smile.png',
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Robot.png',
+    'https://raw.githubusercontent.com/Tarikul-Islam-Anik/Animated-Fluent-Emojis/master/Emojis/Smilies/Ghost.png'
 ];
 
-// Встроенные GIF
+// ПРЯМЫЕ GIF (БЕЗ 403 БЛОКИРОВОК)
 let availableGifs = [
-    'https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif',
-    'https://media.giphy.com/media/unQ3IJU2RG7DO/giphy.gif',
-    'https://media.giphy.com/media/3o7TKSjRrfIPjeiVyM/giphy.gif',
-    'https://media.giphy.com/media/VbnUQIRNNzrD94VAWd/giphy.gif',
-    'https://media.giphy.com/media/blSTtZehjAZ8I/giphy.gif',
-    'https://media.giphy.com/media/l41lI4bYmcsPJX9Go/giphy.gif'
+    'https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif',
+    'https://media.tenor.com/2642a8b92b67f6a73baef50294fc99b7/tenor.gif',
+    'https://media.tenor.com/y_KzB9v3vR4AAAAM/cat-dance.gif',
+    'https://media.tenor.com/gK5W4lI4sKkAAAAM/dog-dance.gif',
+    'https://media.tenor.com/Bf06W44rN7IAAAAM/pepe-dance.gif',
+    'https://media.tenor.com/x8v1oNuOmg4AAAAd/rickroll-roll.gif'
 ];
 
-function getChatHistory() { return JSON.parse(localStorage.getItem('dc_v7_chat_history') || '{}'); }
+function getChatHistory() { return JSON.parse(localStorage.getItem('dc_v8_chat_history') || '{}'); }
 function saveMessage(chatKey, msgObj) {
     const history = getChatHistory();
     if (!history[chatKey]) history[chatKey] = [];
     history[chatKey].push(msgObj);
     if (history[chatKey].length > 150) history[chatKey].shift();
-    localStorage.setItem('dc_v7_chat_history', JSON.stringify(history));
+    localStorage.setItem('dc_v8_chat_history', JSON.stringify(history));
 }
 
 // =========================================================================
 //                  АВТОРИЗАЦИЯ
 // =========================================================================
 function checkExistingSession() {
-    const saved = localStorage.getItem('dc_user_account_v7');
+    const saved = localStorage.getItem('dc_user_account_v8');
     if (saved) {
         currentUser = JSON.parse(saved);
         if (!currentUser.friendCode) currentUser.friendCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -664,7 +705,7 @@ function handleAuthSubmit() {
         return;
     }
 
-    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v7') || '{}');
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v8') || '{}');
     const userKey = username.toLowerCase();
 
     if (authMode === 'register') {
@@ -687,9 +728,9 @@ function handleAuthSubmit() {
         };
 
         db[userKey] = newUser;
-        localStorage.setItem('dc_accounts_db_v7', JSON.stringify(db));
+        localStorage.setItem('dc_accounts_db_v8', JSON.stringify(db));
         currentUser = newUser;
-        localStorage.setItem('dc_user_account_v7', JSON.stringify(currentUser));
+        localStorage.setItem('dc_user_account_v8', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initApp();
 
@@ -701,7 +742,7 @@ function handleAuthSubmit() {
             return;
         }
         currentUser = acc;
-        localStorage.setItem('dc_user_account_v7', JSON.stringify(currentUser));
+        localStorage.setItem('dc_user_account_v8', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initApp();
     }
@@ -710,15 +751,15 @@ function handleAuthSubmit() {
 document.getElementById('auth-password').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
 
 function logout() {
-    localStorage.removeItem('dc_user_account_v7');
+    localStorage.removeItem('dc_user_account_v8');
     window.location.reload();
 }
 
 function saveUserData() {
-    localStorage.setItem('dc_user_account_v7', JSON.stringify(currentUser));
-    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v7') || '{}');
+    localStorage.setItem('dc_user_account_v8', JSON.stringify(currentUser));
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v8') || '{}');
     db[currentUser.name.toLowerCase()] = currentUser;
-    localStorage.setItem('dc_accounts_db_v7', JSON.stringify(db));
+    localStorage.setItem('dc_accounts_db_v8', JSON.stringify(db));
 }
 
 function initApp() {
@@ -736,7 +777,7 @@ function initApp() {
 }
 
 // =========================================================================
-//         КАДРИРОВАНИЕ АВАТАРКИ (ВЫБОР ЦЕНТРА И МАСШТАБА)
+//         КАДРИРОВАНИЕ АВАТАРКИ
 // =========================================================================
 let cropImg = new Image();
 let cropX = 0, cropY = 0;
@@ -769,11 +810,9 @@ function drawCropCanvas() {
     cropScale = parseFloat(document.getElementById('crop-zoom').value);
     cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
 
-    // Рисуем затемнение фона
     cropCtx.fillStyle = "#111";
     cropCtx.fillRect(0, 0, cropCanvas.width, cropCanvas.height);
 
-    // Рисуем изображение со смещением
     const drawW = cropImg.width * (260 / Math.max(cropImg.width, cropImg.height)) * cropScale;
     const drawH = cropImg.height * (260 / Math.max(cropImg.width, cropImg.height)) * cropScale;
     const posX = (260 - drawW) / 2 + cropX;
@@ -781,7 +820,6 @@ function drawCropCanvas() {
 
     cropCtx.drawImage(cropImg, posX, posY, drawW, drawH);
 
-    // Рисуем круговую маску превью
     cropCtx.strokeStyle = "var(--blurple)";
     cropCtx.lineWidth = 4;
     cropCtx.beginPath();
@@ -789,7 +827,6 @@ function drawCropCanvas() {
     cropCtx.stroke();
 }
 
-// Перетаскивание картинки мышкой или пальцем
 cropCanvas.addEventListener('mousedown', e => {
     isDraggingCrop = true;
     startDragX = e.clientX - cropX;
@@ -817,12 +854,9 @@ cropCanvas.addEventListener('touchmove', e => {
 cropCanvas.addEventListener('touchend', () => isDraggingCrop = false);
 
 function applyAvatarCrop() {
-    // Сохраняем результат в круглый аватар
     const outCanvas = document.createElement('canvas');
     outCanvas.width = 128; outCanvas.height = 128;
     const outCtx = outCanvas.getContext('2d');
-
-    // Обрезаем ровно область круга
     outCtx.drawImage(cropCanvas, 30, 30, 200, 200, 0, 0, 128, 128);
 
     currentUser.avatarUrl = outCanvas.toDataURL('image/jpeg', 0.82);
@@ -833,27 +867,27 @@ function applyAvatarCrop() {
 }
 
 // =========================================================================
-//            СТИКЕРЫ И ГИФКИ
+//            СТИКЕРЫ И ГИФКИ С ОБХОДОМ БЛОКИРОВОК
 // =========================================================================
 function buildMediaPopovers() {
-    // Стикеры
     const stGrid = document.getElementById('stickers-grid');
     stGrid.innerHTML = '';
     availableStickers.forEach(url => {
         const img = document.createElement('img');
         img.className = 'popover-item';
         img.src = url;
+        img.setAttribute('referrerpolicy', 'no-referrer');
         img.onclick = () => sendSticker(url);
         stGrid.appendChild(img);
     });
 
-    // GIF
     const gifGrid = document.getElementById('gifs-grid');
     gifGrid.innerHTML = '';
     availableGifs.forEach(url => {
         const img = document.createElement('img');
         img.className = 'popover-item';
         img.src = url;
+        img.setAttribute('referrerpolicy', 'no-referrer');
         img.onclick = () => sendGif(url);
         gifGrid.appendChild(img);
     });
@@ -862,18 +896,29 @@ function buildMediaPopovers() {
 function togglePopover(id) {
     const el = document.getElementById(id);
     const otherId = id === 'stickers-popover' ? 'gifs-popover' : 'stickers-popover';
-    document.getElementById(otherId).style.display = 'none';
-    el.style.display = el.style.display === 'flex' ? 'none' : 'flex';
+    document.getElementById(otherId).classList.remove('active');
+    el.classList.toggle('active');
 }
 
 function sendSticker(url) {
-    document.getElementById('stickers-popover').style.display = 'none';
+    document.getElementById('stickers-popover').classList.remove('active');
     sendMediaMessage('sticker', url);
 }
 
 function sendGif(url) {
-    document.getElementById('gifs-popover').style.display = 'none';
+    document.getElementById('gifs-popover').classList.remove('active');
     sendMediaMessage('gif', url);
+}
+
+function handleCustomGifKey(e) {
+    if (e.key === 'Enter') {
+        const input = document.getElementById('gif-direct-input');
+        const url = input.value.trim();
+        if (url) {
+            sendGif(url);
+            input.value = '';
+        }
+    }
 }
 
 function handleCustomStickerUpload(e) {
@@ -881,7 +926,7 @@ function handleCustomStickerUpload(e) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-        availableStickers.push(ev.target.result);
+        availableStickers.unshift(ev.target.result);
         buildMediaPopovers();
         sendSticker(ev.target.result);
     };
@@ -1002,7 +1047,7 @@ function checkUrlInvite() {
 }
 
 function openInviteModal() {
-    document.getElementById('server-dropdown').style.display = 'none';
+    document.getElementById('server-dropdown').classList.remove('active');
     if (currentView !== 'SERVER' || !userServers[currentServerIndex]) return;
 
     const s = userServers[currentServerIndex];
@@ -1024,7 +1069,7 @@ function copyInviteLink() {
 }
 
 function leaveCurrentServer() {
-    document.getElementById('server-dropdown').style.display = 'none';
+    document.getElementById('server-dropdown').classList.remove('active');
     if (currentView !== 'SERVER' || !userServers[currentServerIndex]) return;
     const s = userServers[currentServerIndex];
 
@@ -1385,16 +1430,16 @@ function loadChannelMessages() {
 function handleSidebarHeaderClick() {
     if (currentView === 'SERVER') {
         const menu = document.getElementById('server-dropdown');
-        menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        menu.classList.toggle('active');
     }
 }
 window.addEventListener('click', e => {
     if (!e.target.closest('#sidebar-header-box') && !e.target.closest('#server-dropdown')) {
-        document.getElementById('server-dropdown').style.display = 'none';
+        document.getElementById('server-dropdown').classList.remove('active');
     }
     if (!e.target.closest('.media-popover') && !e.target.closest('.input-action-btn')) {
-        document.getElementById('stickers-popover').style.display = 'none';
-        document.getElementById('gifs-popover').style.display = 'none';
+        document.getElementById('stickers-popover').classList.remove('active');
+        document.getElementById('gifs-popover').classList.remove('active');
     }
 });
 
@@ -1457,9 +1502,6 @@ function ucardOpenDM() {
 //            БЕЗОТКАЗНЫЙ СЕТЕВОЙ МОСТ
 // =========================================================================
 function connectGlobalNetwork() {
-    const badge = document.getElementById('net-badge');
-    const text = document.getElementById('net-text');
-
     const randomClientId = 'dc_u_' + Math.random().toString(16).substring(2, 10);
     mqttClient = mqtt.connect('wss://broker.hivemq.com:8884/mqtt', {
         clientId: randomClientId,
@@ -1470,17 +1512,9 @@ function connectGlobalNetwork() {
     const topic = 'discord_app_universal_network_room_2026';
 
     mqttClient.on('connect', () => {
-        badge.style.color = 'var(--green)';
-        text.innerText = 'В сети';
         mqttClient.subscribe(topic);
-
         sendPacket('WHO_IS_ONLINE');
         broadcastPresence();
-    });
-
-    mqttClient.on('error', () => {
-        badge.style.color = 'var(--red)';
-        text.innerText = 'Сбой сети';
     });
 
     mqttClient.on('message', async (t, payload) => {
@@ -1577,7 +1611,7 @@ function handleIncomingPacket(data) {
     else if (data.type === 'CALL_OFFER') {
         if (data.targetUserId === currentUser.id) {
             document.getElementById('caller-name').innerText = `${data.author} звонит вам`;
-            document.getElementById('incoming-call-modal').style.display = 'block';
+            openIncomingCallModal();
         }
     } else if (data.type === 'CALL_ACCEPTED') {
         if (data.targetUserId === currentUser.id) startWebRTC(true);
@@ -1659,7 +1693,7 @@ async function handleFileUpload(e) {
     } else {
         const reader = new FileReader();
         reader.onload = () => {
-            if (file.size > 80 * 1024) { alert('Файлы поддерживаются до 80 КБ!'); return; }
+            if (file.size > 80 * 1024) { alert('Файлы поддерживаются до 80 КБ! Фотографии можно слать любых размеров.'); return; }
             const msgData = {
                 author: currentUser.name,
                 color: currentUser.color,
@@ -1682,7 +1716,7 @@ async function handleFileUpload(e) {
     e.target.value = '';
 }
 
-// Голосовые сообщения (ГС)
+// Голосовые сообщения
 let mediaRecorder = null, audioChunks = [], isRecording = false;
 async function toggleVoiceRecord() {
     initAudio();
@@ -1740,9 +1774,9 @@ function renderMessage(data, scroll = true) {
     } else if (data.msgType === 'image') {
         contentHtml = `<img src="${data.fileUrl}" class="chat-image" onclick="window.open('${data.fileUrl}')">`;
     } else if (data.msgType === 'sticker') {
-        contentHtml = `<img src="${data.fileUrl}" class="chat-sticker">`;
+        contentHtml = `<img src="${data.fileUrl}" class="chat-sticker" referrerpolicy="no-referrer">`;
     } else if (data.msgType === 'gif') {
-        contentHtml = `<img src="${data.fileUrl}" class="chat-gif">`;
+        contentHtml = `<img src="${data.fileUrl}" class="chat-gif" referrerpolicy="no-referrer">`;
     } else if (data.msgType === 'file') {
         contentHtml = `
             <div class="file-card">
@@ -1868,15 +1902,9 @@ function saveProfile() {
     closeModal('profile-modal');
 }
 
-// =========================================================================
-//         ЗВОНКИ WebRTC (ПОЛНОСТЬЮ ПОЧИНЕНЫ + ДЕМОНСТРАЦИЯ ЭКРАНА)
-// =========================================================================
-let peerConnection = null;
-let localStream = null;
-let screenStream = null;
-let isScreenSharing = false;
+// Звонки WebRTC
+let peerConnection = null, localStream = null, screenStream = null, isScreenSharing = false;
 
-// 5 надежных мировых STUN-серверов от Google для обхода любых NAT и блокировок
 const rtcConfig = {
     iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
@@ -1892,10 +1920,7 @@ async function initiateCall() {
     initAudio();
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch(e) {
-        alert('Разрешите доступ к микрофону в браузере!');
-        return;
-    }
+    } catch(e) { alert('Разрешите доступ к микрофону в браузере!'); return; }
     document.getElementById('voice-panel').style.display = 'flex';
     document.getElementById('voice-status-text').innerText = 'Гудки... Ожидание ответа';
     sendPacket('CALL_OFFER', { targetUserId: activeDmFriend.id });
@@ -1903,31 +1928,33 @@ async function initiateCall() {
 
 async function answerCall() {
     initAudio();
-    document.getElementById('incoming-call-modal').style.display = 'none';
+    closeIncomingCallModal();
     try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch(e) {
-        alert('Не удалось подключить микрофон!');
-        rejectCall();
-        return;
-    }
+    } catch(e) { alert('Не удалось подключить микрофон!'); rejectCall(); return; }
     document.getElementById('voice-panel').style.display = 'flex';
     document.getElementById('voice-status-text').innerText = 'Связь устанавливается...';
     sendPacket('CALL_ACCEPTED', { targetUserId: activeDmFriend ? activeDmFriend.id : null });
 }
 
 function rejectCall() {
-    document.getElementById('incoming-call-modal').style.display = 'none';
+    closeIncomingCallModal();
     sendPacket('CALL_REJECTED');
+}
+
+function openIncomingCallModal() {
+    const modal = document.getElementById('incoming-call-modal');
+    modal.classList.add('active');
+}
+function closeIncomingCallModal() {
+    const modal = document.getElementById('incoming-call-modal');
+    modal.classList.remove('active');
 }
 
 async function startWebRTC(isInitiator) {
     peerConnection = new RTCPeerConnection(rtcConfig);
-
-    // Добавляем микрофон
     localStream.getTracks().forEach(t => peerConnection.addTrack(t, localStream));
 
-    // Принимаем звук и видеострим друга
     peerConnection.ontrack = e => {
         if (e.track.kind === 'audio') {
             const remoteAudio = document.getElementById('remote-audio');
@@ -1935,7 +1962,6 @@ async function startWebRTC(isInitiator) {
             remoteAudio.play().catch(() => {});
             document.getElementById('voice-status-text').innerText = 'Разговор идет (Голос онлайн)';
         } else if (e.track.kind === 'video') {
-            // Входящий стрим экрана
             const remoteVid = document.getElementById('remote-screen-video');
             document.getElementById('screen-share-stage').style.display = 'block';
             remoteVid.srcObject = e.streams[0];
@@ -1963,7 +1989,6 @@ async function handleRtcOffer(sdp) {
     sendPacket('RTC_ANSWER', { sdp: ans, targetUserId: activeDmFriend ? activeDmFriend.id : null });
 }
 
-// ДЕМОНСТРАЦИЯ ЭКРАНА (СТРИМ)
 async function toggleScreenShare() {
     const btn = document.getElementById('btn-screen-share');
     if (!isScreenSharing) {
@@ -1973,7 +1998,6 @@ async function toggleScreenShare() {
 
             if (peerConnection) {
                 peerConnection.addTrack(screenTrack, screenStream);
-                // Пересогласовываем WebRTC для добавления видеопотока
                 const offer = await peerConnection.createOffer();
                 await peerConnection.setLocalDescription(offer);
                 sendPacket('RTC_OFFER', { sdp: offer, targetUserId: activeDmFriend ? activeDmFriend.id : null });
@@ -1982,11 +2006,8 @@ async function toggleScreenShare() {
             isScreenSharing = true;
             btn.classList.add('active');
             btn.innerText = '🖥 Остановить';
-
             screenTrack.onended = () => stopScreenShare();
-        } catch(e) {
-            console.log('Стрим отменен');
-        }
+        } catch(e) {}
     } else {
         stopScreenShare();
     }
@@ -2013,7 +2034,7 @@ function cleanUpCall() {
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (peerConnection) { peerConnection.close(); peerConnection = null; }
     document.getElementById('voice-panel').style.display = 'none';
-    document.getElementById('incoming-call-modal').style.display = 'none';
+    closeIncomingCallModal();
     document.getElementById('screen-share-stage').style.display = 'none';
 }
 
@@ -2027,9 +2048,15 @@ function toggleMute() {
     }
 }
 
-// Модалки
-function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+// ПЛАВНОЕ ОТКРЫТИЕ И ЗАКРЫТИЕ МОДАЛЬНЫХ ОКОН
+function openModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.add('active');
+}
+function closeModal(id) {
+    const m = document.getElementById(id);
+    if (m) m.classList.remove('active');
+}
 function escapeHtml(t) { const d = document.createElement('div'); d.innerText = t; return d.innerHTML; }
 
 // СТАРТ

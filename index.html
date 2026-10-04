@@ -191,7 +191,7 @@
             width: 30px; height: 30px; border-radius: 50%; background: var(--blurple); color: #fff; border: none; cursor: pointer; font-size: 12px;
         }
 
-        /* ПОЛЕ ВВОДА СООБЩЕНИЯ */
+        /* ПОЛЕ ВВОДА */
         .chat-input-wrapper {
             padding: 0 16px 20px 16px; position: relative; width: 100%;
         }
@@ -210,7 +210,7 @@
 
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
 
-        /* НАСТОЯЩИЕ ВСПЛЫВАЮЩИЕ ПАНЕЛИ СТИКЕРОВ И ГИФОК НАД КНОПКАМИ */
+        /* ПАНЕЛИ СТИКЕРОВ И ГИФОК */
         .media-popover {
             position: absolute;
             bottom: 70px;
@@ -243,7 +243,7 @@
         }
         .popover-item:hover { transform: scale(1.08); background: #2b2d31; }
 
-        /* 4. СПИСОК УЧАСТНИКОВ */
+        /* СПИСОК УЧАСТНИКОВ */
         .members-sidebar {
             width: 220px; background: var(--bg-channels); display: flex; flex-direction: column;
             padding: 16px 10px; overflow-y: auto; flex-shrink: 0; border-left: 1px solid #202225;
@@ -267,17 +267,17 @@
         .hub-tab:hover, .hub-tab.active { background: rgba(255,255,255,0.08); color: var(--text-header); }
         .hub-tab.add { background: var(--green); color: #fff; }
 
-        /* ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА */
+        /* НАДЕЖНЫЕ ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА (БЕЗ ДИСПЛЕЙ-БАГОВ) */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(4, 1, 9, 0.75);
             backdrop-filter: blur(8px);
-            display: flex; align-items: center; justify-content: center; z-index: 200;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+            display: flex; align-items: center; justify-content: center; z-index: 500;
+            opacity: 0; pointer-events: none; visibility: hidden;
+            transition: opacity 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .modal-overlay.active {
-            opacity: 1; pointer-events: auto;
+            opacity: 1 !important; pointer-events: auto !important; visibility: visible !important;
         }
         .modal-box {
             background: var(--bg-channels); padding: 24px; border-radius: 12px; width: 380px; text-align: center; color: #fff;
@@ -299,7 +299,7 @@
 
         #incoming-call-modal {
             display: flex; position: absolute; top: 20px; right: 20px; background: var(--bg-channels);
-            border: 2px solid var(--blurple); padding: 16px; border-radius: 8px; z-index: 200; text-align: center;
+            border: 2px solid var(--blurple); padding: 16px; border-radius: 8px; z-index: 500; text-align: center;
             opacity: 0; pointer-events: none; transform: translateY(-15px);
             transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
@@ -370,11 +370,11 @@
         </div>
     </div>
 
-    <!-- 3. АВТОРИЗАЦИЯ -->
-    <div id="auth-modal" class="modal-overlay" style="display: none;">
+    <!-- 3. АВТОРИЗАЦИЯ (ОТКРЫВАЕТСЯ ПРИ ВХОДЕ) -->
+    <div id="auth-modal" class="modal-overlay">
         <div class="modal-box">
             <h2 style="margin-bottom: 4px;">Discord Web</h2>
-            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Релиз 2026iscoming</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;"><span class="release-badge">Релиз 2026iscoming</span></div>
 
             <div class="modal-tabs">
                 <div class="modal-tab" id="tab-login" onclick="switchAuthTab('login')">Вход</div>
@@ -565,10 +565,7 @@
             <div id="chat-conversation-view" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
                 <div class="messages-container" id="messages"></div>
 
-                <!-- ПОЛЕ ВВОДА СООБЩЕНИЯ + ПАНЕЛИ СТИКЕРОВ И ГИФОК ПРЯМО НАД НИМ -->
                 <div class="chat-input-wrapper">
-                    
-                    <!-- ПАНЕЛЬ СТИКЕРОВ -->
                     <div class="media-popover" id="stickers-popover" onclick="event.stopPropagation()">
                         <div style="font-size: 12px; font-weight: bold; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;">
                             <span>СТИКЕРЫ ДИСКОРД</span>
@@ -577,7 +574,6 @@
                         <div class="popover-grid" id="stickers-grid"></div>
                     </div>
 
-                    <!-- ПАНЕЛЬ ГИФОК -->
                     <div class="media-popover" id="gifs-popover" onclick="event.stopPropagation()">
                         <div style="font-size: 12px; font-weight: bold; margin-bottom: 6px;">ГИФКИ</div>
                         <input type="text" id="gif-direct-input" placeholder="Вставьте ссылку на любую GIF и нажмите Enter..." style="padding:6px; background:#18191c; border:1px solid #444; border-radius:4px; color:#fff; font-size:12px; outline:none; margin-bottom:8px;" onkeydown="handleCustomGifKey(event)">
@@ -642,7 +638,6 @@ let onlineMembers = {};
 let hubTabMode = 'all';
 let mqttClient = null;
 
-// БЕЗОТКАЗНЫЕ ВСТРОЕННЫЕ СТИКЕРЫ (SVG)
 let availableStickers = [
     'https://api.iconify.design/fluent-emoji:fire.svg',
     'https://api.iconify.design/fluent-emoji:crown.svg',
@@ -658,7 +653,6 @@ let availableStickers = [
     'https://api.iconify.design/fluent-emoji:clapping-hands.svg'
 ];
 
-// БЕЗОТКАЗНЫЕ GIF (ПРОВЕРЕННЫЕ ССЫЛКИ GIPHY / WIKIMEDIA)
 let availableGifs = [
     'https://media1.giphy.com/media/ICOgUNjpvO0PC/200.gif',
     'https://media1.giphy.com/media/unQ3IJU2RG7DO/200.gif',
@@ -668,20 +662,20 @@ let availableGifs = [
     'https://media1.giphy.com/media/3o7TKSjRrfIPjeiVyM/200.gif'
 ];
 
-function getChatHistory() { return JSON.parse(localStorage.getItem('dc_v9_chat_history') || '{}'); }
+function getChatHistory() { return JSON.parse(localStorage.getItem('dc_v10_chat_history') || '{}'); }
 function saveMessage(chatKey, msgObj) {
     const history = getChatHistory();
     if (!history[chatKey]) history[chatKey] = [];
     history[chatKey].push(msgObj);
     if (history[chatKey].length > 150) history[chatKey].shift();
-    localStorage.setItem('dc_v9_chat_history', JSON.stringify(history));
+    localStorage.setItem('dc_v10_chat_history', JSON.stringify(history));
 }
 
 // =========================================================================
-//                  АВТОРИЗАЦИЯ
+//            АВТОРИЗАЦИЯ (ИСПРАВЛЕНА!)
 // =========================================================================
 function checkExistingSession() {
-    const saved = localStorage.getItem('dc_user_account_v9');
+    const saved = localStorage.getItem('dc_user_account_v10');
     if (saved) {
         currentUser = JSON.parse(saved);
         if (!currentUser.friendCode) currentUser.friendCode = Math.floor(100000 + Math.random() * 900000).toString();
@@ -690,6 +684,7 @@ function checkExistingSession() {
         if (!currentUser.servers) currentUser.servers = getDefaultServers();
         initApp();
     } else {
+        // Открываем модалку регистрации сразу!
         openModal('auth-modal');
         switchAuthTab('register');
     }
@@ -726,7 +721,7 @@ function handleAuthSubmit() {
         return;
     }
 
-    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v9') || '{}');
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v10') || '{}');
     const userKey = username.toLowerCase();
 
     if (authMode === 'register') {
@@ -749,9 +744,9 @@ function handleAuthSubmit() {
         };
 
         db[userKey] = newUser;
-        localStorage.setItem('dc_accounts_db_v9', JSON.stringify(db));
+        localStorage.setItem('dc_accounts_db_v10', JSON.stringify(db));
         currentUser = newUser;
-        localStorage.setItem('dc_user_account_v9', JSON.stringify(currentUser));
+        localStorage.setItem('dc_user_account_v10', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initApp();
 
@@ -763,7 +758,7 @@ function handleAuthSubmit() {
             return;
         }
         currentUser = acc;
-        localStorage.setItem('dc_user_account_v9', JSON.stringify(currentUser));
+        localStorage.setItem('dc_user_account_v10', JSON.stringify(currentUser));
         closeModal('auth-modal');
         initApp();
     }
@@ -772,15 +767,16 @@ function handleAuthSubmit() {
 document.getElementById('auth-password').addEventListener('keydown', e => { if (e.key === 'Enter') handleAuthSubmit(); });
 
 function logout() {
-    localStorage.removeItem('dc_user_account_v9');
+    localStorage.removeItem('dc_user_account_v10');
     window.location.reload();
 }
 
 function saveUserData() {
-    localStorage.setItem('dc_user_account_v9', JSON.stringify(currentUser));
-    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v9') || '{}');
+    if (!currentUser) return;
+    localStorage.setItem('dc_user_account_v10', JSON.stringify(currentUser));
+    const db = JSON.parse(localStorage.getItem('dc_accounts_db_v10') || '{}');
     db[currentUser.name.toLowerCase()] = currentUser;
-    localStorage.setItem('dc_accounts_db_v9', JSON.stringify(db));
+    localStorage.setItem('dc_accounts_db_v10', JSON.stringify(db));
 }
 
 function initApp() {
@@ -795,6 +791,166 @@ function initApp() {
 
     switchToDMsView();
     setInterval(broadcastPresence, 4000);
+}
+
+// =========================================================================
+//            СОЗДАНИЕ СЕРВЕРОВ (ИСПРАВЛЕНО!)
+// =========================================================================
+function switchServerModalTab(tab) {
+    document.getElementById('tab-srv-create').classList.toggle('active', tab === 'create');
+    document.getElementById('tab-srv-join').classList.toggle('active', tab === 'join');
+    document.getElementById('panel-srv-create').style.display = tab === 'create' ? 'block' : 'none';
+    document.getElementById('panel-srv-join').style.display = tab === 'join' ? 'block' : 'none';
+}
+
+function confirmCreateServer() {
+    if (!currentUser) {
+        alert('Сначала зарегистрируйтесь или войдите!');
+        openModal('auth-modal');
+        return;
+    }
+
+    const nameInput = document.getElementById('new-server-name');
+    const name = nameInput.value.trim();
+    if (!name) { alert('Введите название сервера!'); return; }
+
+    const sId = 'srv_' + Math.random().toString(36).substring(2, 9);
+    const newSrv = {
+        id: sId,
+        name: name,
+        icon: name[0].toUpperCase(),
+        ownerId: currentUser.id,
+        channels: ['общий', 'мемы']
+    };
+
+    if (!currentUser.servers) currentUser.servers = [];
+    currentUser.servers.push(newSrv);
+    userServers = currentUser.servers;
+    saveUserData();
+
+    renderServerBar();
+    switchToServer(userServers.length - 1);
+    closeModal('add-server-modal');
+    nameInput.value = '';
+    alert(`Сервер "${name}" успешно создан! Вы его создатель 👑.`);
+}
+
+function confirmJoinByInvite() {
+    const input = document.getElementById('join-invite-input');
+    const val = input.value.trim();
+    if (!val) { alert('Вставьте ссылку или код приглашения!'); return; }
+    joinServerByCode(val);
+    closeModal('add-server-modal');
+    input.value = '';
+}
+
+function joinServerByCode(rawCode) {
+    try {
+        let code = rawCode;
+        if (code.includes('#invite=')) code = code.split('#invite=')[1];
+        const srvData = JSON.parse(safeDecode(code));
+
+        if (srvData && srvData.name && srvData.id) {
+            if (currentUser.servers.some(s => s.id === srvData.id)) {
+                alert('Вы уже состоите на этом сервере!');
+                const idx = currentUser.servers.findIndex(s => s.id === srvData.id);
+                switchToServer(idx);
+                return;
+            }
+
+            const srvObj = {
+                id: srvData.id,
+                name: srvData.name,
+                icon: srvData.icon || srvData.name[0].toUpperCase(),
+                ownerId: srvData.ownerId,
+                channels: srvData.channels || ['общий']
+            };
+
+            currentUser.servers.push(srvObj);
+            userServers = currentUser.servers;
+            saveUserData();
+
+            renderServerBar();
+            switchToServer(userServers.length - 1);
+            alert(`Успешно! Вы вошли на сервер "${srvData.name}"!`);
+        } else {
+            throw new Error();
+        }
+    } catch(e) {
+        alert('Неверный код или ссылка приглашения!');
+    }
+}
+
+function checkUrlInvite() {
+    if (window.location.hash.startsWith('#invite=')) {
+        const code = window.location.hash.replace('#invite=', '');
+        window.location.hash = '';
+        setTimeout(() => joinServerByCode(code), 600);
+    }
+}
+
+function openInviteModal() {
+    document.getElementById('server-dropdown').classList.remove('active');
+    if (currentView !== 'SERVER' || !userServers[currentServerIndex]) return;
+
+    const s = userServers[currentServerIndex];
+    const payload = { id: s.id, name: s.name, icon: s.icon, ownerId: s.ownerId, channels: s.channels };
+    const inviteCode = safeEncode(JSON.stringify(payload));
+    const inviteUrl = `${window.location.origin}${window.location.pathname}#invite=${inviteCode}`;
+
+    document.getElementById('invite-link-display').value = inviteUrl;
+    openModal('invite-modal');
+}
+
+function copyInviteLink() {
+    const input = document.getElementById('invite-link-display');
+    input.select();
+    navigator.clipboard.writeText(input.value);
+    const btn = document.getElementById('btn-copy-invite');
+    btn.innerText = '✔ Скопировано!';
+    setTimeout(() => btn.innerText = '📋 Скопировать ссылку', 2000);
+}
+
+function leaveCurrentServer() {
+    document.getElementById('server-dropdown').classList.remove('active');
+    if (currentView !== 'SERVER' || !userServers[currentServerIndex]) return;
+    const s = userServers[currentServerIndex];
+
+    if (confirm(`Покинуть сервер "${s.name}"?`)) {
+        currentUser.servers.splice(currentServerIndex, 1);
+        userServers = currentUser.servers;
+        saveUserData();
+        renderServerBar();
+        switchToDMsView();
+    }
+}
+
+function confirmCreateChannel() {
+    if (currentView !== 'SERVER' || !userServers[currentServerIndex]) return;
+    const s = userServers[currentServerIndex];
+
+    if (s.ownerId !== currentUser.id) {
+        alert('Только создатель сервера может добавлять новые каналы!');
+        return;
+    }
+
+    const input = document.getElementById('new-channel-name');
+    const name = input.value.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!name) { alert('Введите название канала!'); return; }
+
+    if (!s.channels.includes(name)) {
+        s.channels.push(name);
+        saveUserData();
+        currentChannelName = name;
+        renderChannels();
+        loadChannelMessages();
+        closeModal('create-channel-modal');
+        input.value = '';
+
+        sendPacket('CHANNEL_SYNC', { serverId: s.id, channelName: name });
+    } else {
+        alert('Канал с таким именем уже есть!');
+    }
 }
 
 // =========================================================================
@@ -983,160 +1139,6 @@ function sendMediaMessage(type, url) {
     saveMessage(chatKey, msgData);
     sendPacket('CHAT_MSG', msgData);
     renderMessage(msgData);
-}
-
-// =========================================================================
-//            СОЗДАНИЕ СЕРВЕРОВ И ИНВАЙТЫ
-// =========================================================================
-function switchServerModalTab(tab) {
-    document.getElementById('tab-srv-create').classList.toggle('active', tab === 'create');
-    document.getElementById('tab-srv-join').classList.toggle('active', tab === 'join');
-    document.getElementById('panel-srv-create').style.display = tab === 'create' ? 'block' : 'none';
-    document.getElementById('panel-srv-join').style.display = tab === 'join' ? 'block' : 'none';
-}
-
-function confirmCreateServer() {
-    const nameInput = document.getElementById('new-server-name');
-    const name = nameInput.value.trim();
-    if (!name) { alert('Введите название сервера!'); return; }
-
-    const sId = 'srv_' + Math.random().toString(36).substring(2, 9);
-    const newSrv = {
-        id: sId,
-        name: name,
-        icon: name[0].toUpperCase(),
-        ownerId: currentUser.id,
-        channels: ['общий', 'мемы']
-    };
-
-    if (!currentUser.servers) currentUser.servers = [];
-    currentUser.servers.push(newSrv);
-    userServers = currentUser.servers;
-    saveUserData();
-
-    renderServerBar();
-    switchToServer(userServers.length - 1);
-    closeModal('add-server-modal');
-    nameInput.value = '';
-    alert(`Сервер "${name}" успешно создан! Вы его создатель 👑.`);
-}
-
-function confirmJoinByInvite() {
-    const input = document.getElementById('join-invite-input');
-    const val = input.value.trim();
-    if (!val) { alert('Вставьте ссылку или код приглашения!'); return; }
-    joinServerByCode(val);
-    closeModal('add-server-modal');
-    input.value = '';
-}
-
-function joinServerByCode(rawCode) {
-    try {
-        let code = rawCode;
-        if (code.includes('#invite=')) code = code.split('#invite=')[1];
-        const srvData = JSON.parse(safeDecode(code));
-
-        if (srvData && srvData.name && srvData.id) {
-            if (currentUser.servers.some(s => s.id === srvData.id)) {
-                alert('Вы уже состоите на этом сервере!');
-                const idx = currentUser.servers.findIndex(s => s.id === srvData.id);
-                switchToServer(idx);
-                return;
-            }
-
-            const srvObj = {
-                id: srvData.id,
-                name: srvData.name,
-                icon: srvData.icon || srvData.name[0].toUpperCase(),
-                ownerId: srvData.ownerId,
-                channels: srvData.channels || ['общий']
-            };
-
-            currentUser.servers.push(srvObj);
-            userServers = currentUser.servers;
-            saveUserData();
-
-            renderServerBar();
-            switchToServer(userServers.length - 1);
-            alert(`Успешно! Вы вошли на сервер "${srvData.name}"!`);
-        } else {
-            throw new Error();
-        }
-    } catch(e) {
-        alert('Неверный код или ссылка приглашения!');
-    }
-}
-
-function checkUrlInvite() {
-    if (window.location.hash.startsWith('#invite=')) {
-        const code = window.location.hash.replace('#invite=', '');
-        window.location.hash = '';
-        setTimeout(() => joinServerByCode(code), 600);
-    }
-}
-
-function openInviteModal() {
-    document.getElementById('server-dropdown').classList.remove('active');
-    if (currentView !== 'SERVER' || !userServers[currentServerIndex]) return;
-
-    const s = userServers[currentServerIndex];
-    const payload = { id: s.id, name: s.name, icon: s.icon, ownerId: s.ownerId, channels: s.channels };
-    const inviteCode = safeEncode(JSON.stringify(payload));
-    const inviteUrl = `${window.location.origin}${window.location.pathname}#invite=${inviteCode}`;
-
-    document.getElementById('invite-link-display').value = inviteUrl;
-    openModal('invite-modal');
-}
-
-function copyInviteLink() {
-    const input = document.getElementById('invite-link-display');
-    input.select();
-    navigator.clipboard.writeText(input.value);
-    const btn = document.getElementById('btn-copy-invite');
-    btn.innerText = '✔ Скопировано!';
-    setTimeout(() => btn.innerText = '📋 Скопировать ссылку', 2000);
-}
-
-function leaveCurrentServer() {
-    document.getElementById('server-dropdown').classList.remove('active');
-    if (currentView !== 'SERVER' || !userServers[currentServerIndex]) return;
-    const s = userServers[currentServerIndex];
-
-    if (confirm(`Покинуть сервер "${s.name}"?`)) {
-        currentUser.servers.splice(currentServerIndex, 1);
-        userServers = currentUser.servers;
-        saveUserData();
-        renderServerBar();
-        switchToDMsView();
-    }
-}
-
-function confirmCreateChannel() {
-    if (currentView !== 'SERVER' || !userServers[currentServerIndex]) return;
-    const s = userServers[currentServerIndex];
-
-    if (s.ownerId !== currentUser.id) {
-        alert('Только создатель сервера может добавлять новые каналы!');
-        return;
-    }
-
-    const input = document.getElementById('new-channel-name');
-    const name = input.value.trim().toLowerCase().replace(/\s+/g, '-');
-    if (!name) { alert('Введите название канала!'); return; }
-
-    if (!s.channels.includes(name)) {
-        s.channels.push(name);
-        saveUserData();
-        currentChannelName = name;
-        renderChannels();
-        loadChannelMessages();
-        closeModal('create-channel-modal');
-        input.value = '';
-
-        sendPacket('CHANNEL_SYNC', { serverId: s.id, channelName: name });
-    } else {
-        alert('Канал с таким именем уже есть!');
-    }
 }
 
 // =========================================================================
@@ -1463,7 +1465,6 @@ function handleSidebarHeaderClick() {
     }
 }
 
-// ЗАКРЫТИЕ ВСПЛЫВАЮЩИХ ПАНЕЛЕЙ ПРИ КЛИКЕ СНАРУЖИ
 document.addEventListener('click', e => {
     if (!e.target.closest('#sidebar-header-box') && !e.target.closest('#server-dropdown')) {
         const sDrop = document.getElementById('server-dropdown');
@@ -1808,9 +1809,9 @@ function renderMessage(data, scroll = true) {
     } else if (data.msgType === 'image') {
         contentHtml = `<img src="${data.fileUrl}" class="chat-image" onclick="window.open('${data.fileUrl}')">`;
     } else if (data.msgType === 'sticker') {
-        contentHtml = `<img src="${data.fileUrl}" class="chat-sticker">`;
+        contentHtml = `<img src="${data.fileUrl}" class="chat-sticker" referrerpolicy="no-referrer">`;
     } else if (data.msgType === 'gif') {
-        contentHtml = `<img src="${data.fileUrl}" class="chat-gif">`;
+        contentHtml = `<img src="${data.fileUrl}" class="chat-gif" referrerpolicy="no-referrer">`;
     } else if (data.msgType === 'file') {
         contentHtml = `
             <div class="file-card">
@@ -1899,6 +1900,7 @@ function renderMembersList() {
 }
 
 function updateProfileUI() {
+    if (!currentUser) return;
     document.getElementById('my-name').innerText = currentUser.name;
     document.getElementById('edit-profile-name').value = currentUser.name;
     document.getElementById('my-friend-code-display').value = currentUser.friendCode;
@@ -2082,7 +2084,7 @@ function toggleMute() {
     }
 }
 
-// ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА
+// ПЛАВНЫЕ МОДАЛЬНЫЕ ОКНА БЕЗ ДИСПЛЕЙ-БАГОВ
 function openModal(id) {
     const m = document.getElementById(id);
     if (m) m.classList.add('active');
